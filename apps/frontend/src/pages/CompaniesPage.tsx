@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { Company, INDUSTRY_LABELS, COMPANY_SIZE_LABELS } from '../types';
+import { Company, INDUSTRY_LABELS } from '../types';
 import CompanyCard from '../components/CompanyCard';
-import { Loader2, Building2, Filter, ShieldCheck, Search, MapPin } from 'lucide-react';
+import { Loader2, Building2, Filter, Search, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const cities = [
@@ -66,11 +66,11 @@ export default function CompaniesPage() {
             className="flex flex-col md:flex-row justify-between items-end gap-6"
           >
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold mb-4 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-bold mb-4 backdrop-blur-sm shadow-sm shadow-emerald-900/20">
                 <Building2 className="w-4 h-4" /> Zincir Atlası
               </div>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-                İş Ortaklarını <span className="text-emerald-500">Keşfet</span>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-white drop-shadow-sm">
+                İş Ortaklarını <span className="text-emerald-400">Keşfet</span>
               </h1>
               <p className="text-lg text-slate-400 max-w-2xl">
                 Sektörün önde gelen firmalarıyla bağlantı kurun, tedarik ağınızı genişletin.
@@ -150,8 +150,8 @@ export default function CompaniesPage() {
                 setPagination({ ...pagination, page: 1 });
               }}
               className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${filters.seekingPartners
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
             >
               <span className="text-sm font-medium">Partner Arayanlar</span>

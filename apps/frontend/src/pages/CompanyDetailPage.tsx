@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Company, INDUSTRY_LABELS, COMPANY_SIZE_LABELS, Product } from '../types';
 import {
-  Building2, MapPin, Phone, Mail, Globe, Calendar,
+  Building2, MapPin, Phone, Mail, Globe,
   Link as LinkIcon, Loader2, Award, Briefcase, Star, Package,
   CheckCircle2, ArrowRight, ShieldCheck, Users
 } from 'lucide-react';
@@ -20,6 +20,7 @@ export default function CompanyDetailPage() {
   const [activeTab, setActiveTab] = useState<'profil' | 'hizmetler' | 'yetenekler' | 'urunler' | 'ortaklik'>('profil');
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'accepted' | 'rejected'>('none');
 
   const tabs = [
     { id: 'profil', label: 'Genel Bakış' },
@@ -36,15 +37,55 @@ export default function CompanyDetailPage() {
   useEffect(() => {
     if (company?.id) {
       fetchProducts(company.id);
+      checkConnectionStatus(company.id);
     }
   }, [company?.id]);
+
+  const checkConnectionStatus = async (companyId: string) => {
+    if (!token || !user?.company?.id) {
+      setConnectionStatus('none');
+      return;
+    }
+
+    try {
+      // Kabul edilmiş bağlantıları kontrol et
+      const { data: acceptedData } = await api.get('/connections/accepted');
+      const isAccepted = acceptedData.some((conn: any) =>
+        conn.requester?.id === companyId || conn.receiver?.id === companyId
+      );
+
+      if (isAccepted) {
+        setConnectionStatus('accepted');
+        return;
+      }
+
+      // Bekleyen bağlantıları kontrol et
+      const [sentData, receivedData] = await Promise.all([
+        api.get('/connections/sent'),
+        api.get('/connections/received'),
+      ]);
+
+      const isPending = [...sentData.data, ...receivedData.data].some((conn: any) =>
+        conn.requester?.id === companyId || conn.receiver?.id === companyId
+      );
+
+      if (isPending) {
+        setConnectionStatus('pending');
+        return;
+      }
+
+      setConnectionStatus('none');
+    } catch (error) {
+      setConnectionStatus('none');
+    }
+  };
 
   const fetchCompany = async () => {
     try {
       const { data } = await api.get(`/companies/${slug}`);
       setCompany(data);
     } catch (error) {
-      console.error('Şirket yüklenirken hata:', error);
+      // console.error('Şirket yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
@@ -63,6 +104,10 @@ export default function CompanyDetailPage() {
         message: 'Merhaba, iş birliği yapmak isterim.',
       });
       alert('Bağlantı isteği gönderildi!');
+      // Durumu güncelle
+      if (company?.id) {
+        checkConnectionStatus(company.id);
+      }
     } catch (error: any) {
       alert(error.response?.data?.message || 'Hata oluştu');
     } finally {
@@ -83,7 +128,7 @@ export default function CompanyDetailPage() {
       });
       setProducts(data.products || []);
     } catch (error) {
-      console.error('Ürünler yüklenemedi', error);
+      // console.error('Ürünler yüklenemedi', error);
     } finally {
       setProductsLoading(false);
     }
@@ -420,10 +465,43 @@ export default function CompanyDetailPage() {
               </div>
 
               <div className="flex gap-3">
-                <button onClick={handleConnect} className="btn btn-primary shadow-xl shadow-emerald-900/20 border-2 border-transparent">
-                  <LinkIcon className="w-4 h-4" />
-                  Bağlantı Kur
-                </button>
+                {connectionStatus === 'none' && (
+                  <button
+                    onClick={handleConnect}
+                    disabled={sending}
+                    className="btn btn-primary shadow-xl shadow-emerald-900/20 border-2 border-transparent"
+                  >
+                    {sending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Gönderiliyor...
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="w-4 h-4" />
+                        Bağlantı Kur
+                      </>
+                    )}
+                  </button>
+                )}
+                {connectionStatus === 'pending' && (
+                  <button
+                    disabled
+                    className="btn bg-amber-500 text-white shadow-xl shadow-amber-900/20 border-2 border-transparent cursor-not-allowed opacity-80"
+                  >
+                    <Loader2 className="w-4 h-4" />
+                    Beklemede
+                  </button>
+                )}
+                {connectionStatus === 'accepted' && (
+                  <button
+                    disabled
+                    className="btn bg-emerald-500 text-white shadow-xl shadow-emerald-900/20 border-2 border-transparent cursor-default"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Bağlantı Kuruldu
+                  </button>
+                )}
                 <button className="btn bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:bg-white/20">
                   <Star className="w-4 h-4" />
                 </button>
@@ -439,8 +517,8 @@ export default function CompanyDetailPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-6 py-3 rounded-xl font-semibold whitespace-nowrap transition-all duration-200 ${activeTab === tab.id
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-                  : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200'
                 }`}
             >
               {tab.label}

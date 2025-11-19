@@ -19,7 +19,7 @@ export default function MessagesPage() {
       const { data } = await api.get(endpoint);
       setMessages(data);
     } catch (error) {
-      console.error('Mesajlar yüklenirken hata:', error);
+      // console.error('Mesajlar yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export default function MessagesPage() {
       await api.put(`/messages/${id}/read`);
       fetchMessages();
     } catch (error) {
-      console.error('Mesaj okundu işaretlenirken hata:', error);
+      // console.error('Mesaj okundu işaretlenirken hata:', error);
     }
   };
 
@@ -43,22 +43,20 @@ export default function MessagesPage() {
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('inbox')}
-            className={`pb-3 px-4 font-medium transition-colors ${
-              activeTab === 'inbox'
+            className={`pb-3 px-4 font-medium transition-colors ${activeTab === 'inbox'
                 ? 'border-b-2 border-primary-600 text-primary-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Inbox className="w-4 h-4 inline mr-2" />
             Gelen Kutusu
           </button>
           <button
             onClick={() => setActiveTab('sent')}
-            className={`pb-3 px-4 font-medium transition-colors ${
-              activeTab === 'sent'
+            className={`pb-3 px-4 font-medium transition-colors ${activeTab === 'sent'
                 ? 'border-b-2 border-primary-600 text-primary-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Send className="w-4 h-4 inline mr-2" />
             Gönderilen
@@ -79,9 +77,8 @@ export default function MessagesPage() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`card cursor-pointer ${
-                  !message.isRead && activeTab === 'inbox' ? 'border-primary-300 bg-primary-50' : ''
-                }`}
+                className={`card cursor-pointer ${!message.isRead && activeTab === 'inbox' ? 'border-primary-300 bg-primary-50' : ''
+                  }`}
                 onClick={() => {
                   if (!message.isRead && activeTab === 'inbox') {
                     markAsRead(message.id);

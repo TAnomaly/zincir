@@ -21,15 +21,29 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { logger } from './utils/logger.js';
+import { validateEnv } from './utils/validateEnv.js';
 
 dotenv.config();
+
+// Environment değişkenlerini doğrula
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow loading images from uploads
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "http://localhost:3001", "ws://localhost:3001", "wss://localhost:3001", "http://localhost:3000", "ws://localhost:3000"],
+      imgSrc: ["'self'", "data:", "blob:", "http://localhost:3001"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
 }));
 
 const limiter = rateLimit({
@@ -79,8 +93,8 @@ app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
   const server = app.listen(PORT, () => {
-    console.log(`🚀 Zincir API sunucusu ${PORT} portunda çalışıyor`);
-    console.log(`📍 http://localhost:${PORT}`);
+    logger.production(`🚀 Zincir API sunucusu ${PORT} portunda çalışıyor`);
+    logger.production(`📍 http://localhost:${PORT}`);
   });
 
   socketService.init(server);

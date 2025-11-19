@@ -1,6 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger.js';
 
 interface ExtWebSocket extends WebSocket {
     userId?: string;
@@ -40,14 +41,14 @@ class SocketService {
                 }
                 this.userSockets.get(decoded.userId)?.push(ws);
 
-                console.log(`🔌 Kullanıcı bağlandı: ${decoded.userId}`);
+                logger.log(`🔌 Kullanıcı bağlandı: ${decoded.userId}`);
 
                 ws.on('close', () => {
                     this.removeSocket(decoded.userId, ws);
                 });
 
                 ws.on('error', (err) => {
-                    console.error('WebSocket hatası:', err);
+                    logger.error('WebSocket hatası:', err);
                     this.removeSocket(decoded.userId, ws);
                 });
 
@@ -78,7 +79,7 @@ class SocketService {
                 this.userSockets.delete(userId);
             }
         }
-        console.log(`🔌 Kullanıcı ayrıldı: ${userId}`);
+        logger.log(`🔌 Kullanıcı ayrıldı: ${userId}`);
     }
 
     public emitToUser(userId: string, event: string, data: any) {

@@ -18,7 +18,6 @@ export default function NotificationDropdown() {
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const fetchNotifications = async () => {
@@ -27,7 +26,7 @@ export default function NotificationDropdown() {
             setNotifications(data.notifications);
             setUnreadCount(data.unreadCount);
         } catch (error) {
-            console.error('Bildirimler alınamadı', error);
+            // console.error('Bildirimler alınamadı', error);
         }
     };
 
@@ -39,7 +38,7 @@ export default function NotificationDropdown() {
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
-            console.error('Bildirim güncellenemedi', error);
+            // console.error('Bildirim güncellenemedi', error);
         }
     };
 
@@ -49,7 +48,7 @@ export default function NotificationDropdown() {
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
         } catch (error) {
-            console.error('Bildirimler güncellenemedi', error);
+            // console.error('Bildirimler güncellenemedi', error);
         }
     };
 
@@ -59,7 +58,7 @@ export default function NotificationDropdown() {
             await api.delete(`/notifications/${id}`);
             setNotifications(prev => prev.filter(n => n.id !== id));
         } catch (error) {
-            console.error('Bildirim silinemedi', error);
+            // console.error('Bildirim silinemedi', error);
         }
     };
 

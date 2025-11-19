@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Product } from '../types';
 import {
-  Loader2, ArrowLeft, Eye, Star, DollarSign, MapPin,
-  Share2, Heart, MessageCircle, CheckCircle2, ShieldCheck
+  Loader2, ArrowLeft, Eye, MapPin,
+  Share2, Heart, MessageCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -42,7 +42,7 @@ export default function ProductDetailPage() {
       else if (sent) setConnectionStatus('PENDING');
       else setConnectionStatus('NONE');
     } catch (error) {
-      console.error('Bağlantı durumu kontrol edilemedi', error);
+      // console.error('Bağlantı durumu kontrol edilemedi', error);
     }
   };
 
@@ -149,7 +149,7 @@ export default function ProductDetailPage() {
         checkConnectionStatus(data.company.id);
       }
     } catch (error) {
-      console.error('Ürün yüklenemedi', error);
+      // console.error('Ürün yüklenemedi', error);
     } finally {
       setLoading(false);
     }

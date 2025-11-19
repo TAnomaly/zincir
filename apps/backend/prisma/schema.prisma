@@ -304,6 +304,7 @@ model Product {
 
   // Görseller
   images        ProductImage[]
+  videos        ProductVideo[]
   mainImage     String?
 
   // Stok
@@ -338,6 +339,21 @@ model ProductImage {
 
   url         String
   alt         String?
+  order       Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+}
+
+model ProductVideo {
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url         String
+  thumbnailUrl String?
+  title       String?
   order       Int       @default(0)
 
   createdAt   DateTime  @default(now())

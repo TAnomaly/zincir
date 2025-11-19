@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 
 interface SocketContextType {
     socket: WebSocket | null;
@@ -28,35 +29,44 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             return;
         }
 
-        // WebSocket bağlantısı
+        // WebSocket bağlantısı (opsiyonel - sadece bildirimler için)
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         // Backend portu 3001'de çalışıyor
         const wsUrl = `${protocol}//${window.location.hostname}:3001/ws?token=${token}`;
 
-        const ws = new WebSocket(wsUrl);
+        try {
+            const ws = new WebSocket(wsUrl);
 
-        ws.onopen = () => {
-            // console.log('🔌 WebSocket bağlantısı kuruldu');
-            setIsConnected(true);
-        };
+            ws.onopen = () => {
+                logger.log('🔌 WebSocket bağlantısı kuruldu');
+                setIsConnected(true);
+            };
 
-        ws.onclose = () => {
-            // console.log('🔌 WebSocket bağlantısı kesildi');
+            ws.onclose = () => {
+                logger.log('🔌 WebSocket bağlantısı kesildi');
+                setIsConnected(false);
+            };
+
+            ws.onerror = () => {
+                // WebSocket hatalarını sessizce yönet
+                // Not: WebSocket sadece anlık bildirimler için kullanılır
+                // Bağlantı başarısız olsa da uygulama çalışmaya devam eder
+                logger.log('WebSocket bağlanamadı (Bildirimler devre dışı)');
+                setIsConnected(false);
+            };
+
+            setSocket(ws);
+
+            return () => {
+                if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                    ws.close();
+                }
+            };
+        } catch (error) {
+            // WebSocket bağlantısı kurulamazsa sessizce devam et
+            logger.log('WebSocket başlatılamadı');
             setIsConnected(false);
-        };
-
-        ws.onerror = (error) => {
-            // WebSocket hatalarını konsola basma (Kullanıcı isteği)
-            // console.error('WebSocket hatası:', error);
-        };
-
-        setSocket(ws);
-
-        return () => {
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-                ws.close();
-            }
-        };
+        }
     }, [token, user]);
 
     return (

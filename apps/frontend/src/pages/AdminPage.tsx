@@ -45,7 +45,7 @@ export default function AdminPage() {
             setStats(statsRes.data);
             setCompanies(companiesRes.data);
         } catch (error) {
-            console.error('Admin verileri yüklenemedi:', error);
+            // console.error('Admin verileri yüklenemedi:', error);
         } finally {
             setLoading(false);
         }
@@ -60,7 +60,7 @@ export default function AdminPage() {
             );
             fetchData(); // Listeyi yenile
         } catch (error) {
-            console.error('Durum güncellenemedi:', error);
+            // console.error('Durum güncellenemedi:', error);
         }
     };
 

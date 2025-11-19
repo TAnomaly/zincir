@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await api.get('/auth/me');
       set({ user: data, token: localStorage.getItem('token') });
     } catch (error) {
-      console.error('Kullanıcı bilgisi alınamadı', error);
+      // console.error('Kullanıcı bilgisi alınamadı', error);
     }
   },
 

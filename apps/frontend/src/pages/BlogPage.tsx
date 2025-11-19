@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, User, ArrowRight, Tag, Clock } from 'lucide-react';
+import { Calendar, User, ArrowRight, Clock } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface BlogPost {
@@ -20,7 +20,6 @@ interface BlogPost {
 
 export default function BlogPage() {
     const [posts, setPosts] = useState<BlogPost[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('Tümü');
 
     const categories = ['Tümü', 'Sektörel Haberler', 'Başarı Hikayeleri', 'İhracat İpuçları', 'Teknoloji'];
@@ -34,7 +33,7 @@ export default function BlogPage() {
             const { data } = await api.get('/blog');
             setPosts(data.posts || []);
         } catch (error) {
-            console.error('Blog yazıları yüklenemedi', error);
+            // console.error('Blog yazıları yüklenemedi', error);
             // Fallback mock data if API fails or is empty
             setPosts([
                 {
@@ -71,8 +70,6 @@ export default function BlogPage() {
                     createdAt: new Date(Date.now() - 172800000).toISOString()
                 }
             ]);
-        } finally {
-            setLoading(false);
         }
     };
 

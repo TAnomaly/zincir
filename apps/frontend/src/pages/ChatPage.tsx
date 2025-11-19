@@ -2,8 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Loader2, Send, Search, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 interface Conversation {
     otherUser: {
@@ -37,6 +37,7 @@ interface Message {
 
 export default function ChatPage() {
     const { user } = useAuthStore();
+    const [searchParams] = useSearchParams();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -45,13 +46,14 @@ export default function ChatPage() {
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [autoStartLoading, setAutoStartLoading] = useState(false);
 
     const fetchConversations = async () => {
         try {
             const { data } = await api.get('/messages/conversations');
             setConversations(data);
         } catch (error) {
-            console.error('Konuşmalar yüklenemedi', error);
+            // console.error('Konuşmalar yüklenemedi', error);
         } finally {
             setLoadingConversations(false);
         }
@@ -67,7 +69,7 @@ export default function ChatPage() {
                 c.otherUser.id === userId ? { ...c, unreadCount: 0 } : c
             ));
         } catch (error) {
-            console.error('Mesajlar yüklenemedi', error);
+            // console.error('Mesajlar yüklenemedi', error);
         } finally {
             setLoadingMessages(false);
         }
@@ -90,7 +92,7 @@ export default function ChatPage() {
             // Update conversation list order
             fetchConversations();
         } catch (error) {
-            console.error('Mesaj gönderilemedi', error);
+            // console.error('Mesaj gönderilemedi', error);
             alert('Mesaj gönderilemedi');
         } finally {
             setSending(false);
@@ -103,6 +105,34 @@ export default function ChatPage() {
         const interval = setInterval(fetchConversations, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    // Auto-start chat if userId or companyId is provided
+    useEffect(() => {
+        const userId = searchParams.get('userId');
+        const companyId = searchParams.get('companyId');
+
+        if (userId && !selectedUserId) {
+            // Direct user ID provided - use it immediately
+            setSelectedUserId(userId);
+        } else if (companyId && conversations.length > 0 && !selectedUserId) {
+            // Find user by companyId
+            const conversation = conversations.find(c => c.otherUser.companyId === companyId);
+            if (conversation) {
+                setSelectedUserId(conversation.otherUser.id);
+            } else {
+                // If no conversation exists, fetch the company to get owner's userId
+                setAutoStartLoading(true);
+                api.get(`/companies/${companyId}`)
+                    .then(({ data }) => {
+                        if (data.ownerId) {
+                            setSelectedUserId(data.ownerId);
+                        }
+                        setAutoStartLoading(false);
+                    })
+                    .catch(() => setAutoStartLoading(false));
+            }
+        }
+    }, [conversations, searchParams, selectedUserId]);
 
     useEffect(() => {
         if (selectedUserId) {

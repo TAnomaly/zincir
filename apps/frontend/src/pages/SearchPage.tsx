@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Company, INDUSTRY_LABELS, COMPANY_SIZE_LABELS } from '../types';
+import { Company, INDUSTRY_LABELS } from '../types';
 import CompanyCard from '../components/CompanyCard';
-import { Search as SearchIcon, Loader2, Filter, ShieldCheck, Sparkles, RefreshCw, MapPin, Building2 } from 'lucide-react';
+import { Search as SearchIcon, Loader2, Filter, ShieldCheck, Sparkles, MapPin, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
 
@@ -44,7 +44,7 @@ export default function SearchPage() {
       });
       setRecommendations(data);
     } catch (error) {
-      console.error('Öneriler alınamadı', error);
+      // console.error('Öneriler alınamadı', error);
     }
   };
 
@@ -66,7 +66,7 @@ export default function SearchPage() {
       });
       setCompanies(data.companies);
     } catch (error) {
-      console.error('Arama hatası:', error);
+      // console.error('Arama hatası:', error);
     } finally {
       setLoading(false);
     }
@@ -192,8 +192,8 @@ export default function SearchPage() {
                   type="button"
                   onClick={() => setFilters({ ...filters, seekingPartners: !filters.seekingPartners })}
                   className={`w-full h-[46px] px-4 rounded-xl flex items-center justify-between border transition-all ${filters.seekingPartners
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                 >
                   <span className="text-sm font-medium">Sadece Arayanlar</span>

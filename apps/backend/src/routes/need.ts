@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -66,18 +66,22 @@ needRouter.get('/', async (req, res, next) => {
 });
 
 // Create a need
-needRouter.post('/', authenticate, async (req, res, next) => {
+needRouter.post('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { title, description, industryType, quantity, budget, deadline } = req.body;
-        const user = (req as any).user;
+        const userId = (req as any).userId;
 
-        if (!user.company) {
+        const company = await prisma.company.findUnique({
+            where: { userId },
+        });
+
+        if (!company) {
             return res.status(400).json({ error: 'Şirket profili oluşturmalısınız.' });
         }
 
         const need = await prisma.need.create({
             data: {
-                companyId: user.company.id,
+                companyId: company.id,
                 title,
                 description,
                 industryType,
@@ -87,7 +91,73 @@ needRouter.post('/', authenticate, async (req, res, next) => {
             },
         });
 
-        res.status(201).json(need);
+        // Find matching companies
+        // 1. Same industry
+        // 2. Not the creator company
+        // 3. Active companies
+        const matches = await prisma.company.findMany({
+            where: {
+                industryType: industryType,
+                id: { not: company.id },
+                isActive: true,
+                // Optional: Add text search if needed
+                // OR: [
+                //   { description: { contains: title, mode: 'insensitive' } },
+                //   { services: { some: { title: { contains: title, mode: 'insensitive' } } } }
+                // ]
+            },
+            take: 10,
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                city: true,
+                industryType: true,
+                description: true,
+            }
+        });
+
+        res.status(201).json({
+            need,
+            matches
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Get matching companies for a need
+needRouter.get('/:id/matches', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const need = await prisma.need.findUnique({
+            where: { id },
+        });
+
+        if (!need) {
+            return res.status(404).json({ error: 'İlan bulunamadı' });
+        }
+
+        const matches = await prisma.company.findMany({
+            where: {
+                industryType: need.industryType,
+                id: { not: need.companyId },
+                isActive: true,
+            },
+            take: 20,
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                city: true,
+                industryType: true,
+                description: true,
+            }
+        });
+
+        res.json(matches);
     } catch (error) {
         next(error);
     }

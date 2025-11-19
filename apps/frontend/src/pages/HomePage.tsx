@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, PerspectiveCamera, Environment, Stars } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import {
-  ArrowRight, ShieldCheck, Globe, Zap,
-  Users, Building2, Search, TrendingUp
+  ShieldCheck, Globe, Zap,
+  Building2, Search, TrendingUp
 } from 'lucide-react';
 import * as THREE from 'three';
 

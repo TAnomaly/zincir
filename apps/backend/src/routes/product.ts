@@ -67,6 +67,10 @@ productRouter.get('/', async (req: Request, res: Response, next: NextFunction) =
             orderBy: { order: 'asc' },
             take: 5,
           },
+          videos: {
+            orderBy: { order: 'asc' },
+            take: 1,
+          },
           _count: {
             select: { favorites: true, reviews: true },
           },
@@ -106,6 +110,9 @@ productRouter.get('/:id', async (req: Request, res: Response, next: NextFunction
           },
         },
         images: {
+          orderBy: { order: 'asc' },
+        },
+        videos: {
           orderBy: { order: 'asc' },
         },
         reviews: {
@@ -183,6 +190,12 @@ productRouter.post(
               order: index,
             }))
           } : undefined,
+          videos: req.body.videos && Array.isArray(req.body.videos) ? {
+            create: req.body.videos.map((url: string, index: number) => ({
+              url,
+              order: index,
+            }))
+          } : undefined,
         },
         include: {
           company: {
@@ -192,6 +205,8 @@ productRouter.post(
               logo: true,
             },
           },
+          images: true,
+          videos: true,
         },
       });
 

@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { IndustryType, CompanySize, INDUSTRY_LABELS, COMPANY_SIZE_LABELS } from '../types';
 import {
   Building2, ShieldCheck, Users, Link2, CheckCircle2,
-  Upload, ImageIcon, X, ChevronRight, AlertCircle
+  ImageIcon, X, ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';

@@ -17,18 +17,17 @@ import {
   X,
   Image as ImageIcon,
   CheckCircle2,
-  LayoutDashboard,
-  Settings,
-  Edit2,
   Eye,
-  Heart,
-  MessageCircle
+  MessageCircle,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TABS = [
   { id: 'overview', label: 'Genel Bakış' },
   { id: 'requests', label: 'Bağlantı Talepleri' },
+  { id: 'connections', label: 'Bağlantılarım' },
+  { id: 'offers', label: 'Teklifler' },
   { id: 'products', label: 'Ürün Yönetimi' },
   { id: 'analytics', label: 'İstatistikler' },
   { id: 'profile', label: 'Şirket Profilim' },
@@ -62,11 +61,18 @@ export default function DashboardPage() {
     currency: 'TRY',
     mainImage: '',
     images: [] as string[],
+    videos: [] as string[],
     tags: '',
     isAvailable: true,
   });
-  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'products' | 'profile' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'connections' | 'offers' | 'products' | 'profile' | 'analytics'>('overview');
+  const [offers, setOffers] = useState<any[]>([]);
+  const [offersLoading, setOffersLoading] = useState(false);
   const [stats, setStats] = useState<any>(null);
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<Company | null>(null);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -95,12 +101,34 @@ export default function DashboardPage() {
     }
   }, [activeTab, user?.company?.id]);
 
+  useEffect(() => {
+    if (activeTab === 'offers') {
+      fetchOffers();
+    }
+  }, [activeTab]);
+
+  const fetchOffers = async () => {
+    setOffersLoading(true);
+    try {
+      const { data } = await api.get('/messages/inbox');
+      // [İLAN TEKLİFİ] ile başlayan mesajları filtrele
+      const offerMessages = data.filter((msg: any) =>
+        msg.content && msg.content.includes('[İLAN TEKLİFİ]')
+      );
+      setOffers(offerMessages);
+    } catch (error) {
+      // Hata sessizce yönetiliyor
+    } finally {
+      setOffersLoading(false);
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const { data } = await api.get('/analytics/dashboard');
       setStats(data);
     } catch (error) {
-      console.error('İstatistikler yüklenirken hata:', error);
+      // Hata sessizce yönetiliyor
     }
   };
 
@@ -116,7 +144,7 @@ export default function DashboardPage() {
       setSentConnections(sent.data);
       setAcceptedConnections(accepted.data);
     } catch (error) {
-      console.error('Bağlantılar yüklenirken hata:', error);
+      // Hata sessizce yönetiliyor
     } finally {
       setLoading(false);
     }
@@ -136,7 +164,7 @@ export default function DashboardPage() {
         website: data.website || '',
       });
     } catch (error) {
-      console.error('Profil yüklenirken hata:', error);
+      // Hata sessizce yönetiliyor
     } finally {
       setProfileLoading(false);
     }
@@ -150,7 +178,7 @@ export default function DashboardPage() {
       });
       setProducts(data.products || []);
     } catch (error) {
-      console.error('Ürünler yüklenirken hata:', error);
+      // Hata sessizce yönetiliyor
     } finally {
       setProductsLoading(false);
     }
@@ -172,6 +200,22 @@ export default function DashboardPage() {
     } catch (error) {
       alert('Bağlantı reddedilirken hata oluştu');
     }
+  };
+
+  const handleSendOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPartner || !offerAmount) {
+      alert('Lütfen teklif miktarını girin');
+      return;
+    }
+
+    // Sohbet sayfasına yönlendir
+    window.location.href = `/chat?companyId=${selectedPartner.id}`;
+  };
+
+  const openOfferModal = (partner: Company) => {
+    setSelectedPartner(partner);
+    setOfferModalOpen(true);
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -201,6 +245,7 @@ export default function DashboardPage() {
         currency: productForm.currency,
         mainImage: productForm.mainImage || undefined,
         images: productForm.images,
+        videos: productForm.videos,
         isAvailable: productForm.isAvailable,
       };
       if (productForm.price) {
@@ -223,6 +268,7 @@ export default function DashboardPage() {
         currency: 'TRY',
         mainImage: '',
         images: [],
+        videos: [],
         tags: '',
         isAvailable: true,
       });
@@ -259,6 +305,21 @@ export default function DashboardPage() {
   const removeImageField = (index: number) => {
     const newImages = productForm.images.filter((_, i) => i !== index);
     setProductForm({ ...productForm, images: newImages });
+  };
+
+  const addVideoField = () => {
+    setProductForm({ ...productForm, videos: [...productForm.videos, ''] });
+  };
+
+  const updateVideoField = (index: number, value: string) => {
+    const newVideos = [...productForm.videos];
+    newVideos[index] = value;
+    setProductForm({ ...productForm, videos: newVideos });
+  };
+
+  const removeVideoField = (index: number) => {
+    const newVideos = productForm.videos.filter((_, i) => i !== index);
+    setProductForm({ ...productForm, videos: newVideos });
   };
 
   const trustScore = Math.min(99, 60 + acceptedConnections.length * 5 + (profile?.certifications?.length || 0) * 4);
@@ -484,7 +545,7 @@ export default function DashboardPage() {
               <div key={connection.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-primary-200 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-primary-700 text-lg">
-                    {connection.requester?.name.charAt(0)}
+                    {(connection.requester?.name || '?').charAt(0)}
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">{connection.requester?.name}</p>
@@ -506,6 +567,276 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderConnections = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="card">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+          <div className="p-2 bg-emerald-50 rounded-lg">
+            <UserCheck className="w-5 h-5 text-emerald-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Bağlantılarım</h2>
+          <span className="ml-auto px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold">
+            {acceptedConnections.length} Aktif Bağlantı
+          </span>
+        </div>
+        {acceptedConnections.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserCheck className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-gray-500">Henüz onaylı bağlantınız yok.</p>
+            <p className="text-gray-400 text-sm mt-2">Şirketlerle bağlantı kurmak için arama yapın.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {acceptedConnections.map((connection) => {
+              const partner = connection.requester?.id === user?.company?.id
+                ? connection.receiver
+                : connection.requester;
+
+              return (
+                <div key={connection.id} className="p-5 rounded-xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all duration-300 group">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow-lg">
+                      {(partner?.name || '?').charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <Link
+                        to={`/companies/${partner?.slug}`}
+                        className="font-bold text-gray-900 hover:text-emerald-600 transition-colors text-lg"
+                      >
+                        {partner?.name}
+                      </Link>
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                        <span>{partner?.city}</span>
+                        {partner?.industryType && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span>{partner?.industryType}</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-4">
+                    {partner && (
+                      <>
+                        <button
+                          onClick={() => openOfferModal(partner as Company)}
+                          className="w-full btn btn-primary gap-2 justify-center text-sm py-2.5 shadow-md hover:shadow-lg transition-all"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Teklif Ver
+                        </button>
+                        <Link
+                          to={`/chat?companyId=${partner.id}`}
+                          className="w-full btn btn-outline gap-2 justify-center text-sm py-2.5 hover:bg-emerald-50 hover:border-emerald-300 transition-all"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Sohbete Geç
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Teklif Modal */}
+      <AnimatePresence>
+        {offerModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setOfferModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Teklif Gönder</h3>
+                <button
+                  onClick={() => setOfferModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {selectedPartner && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                  <p className="text-sm text-gray-500">Teklif gönderilecek şirket:</p>
+                  <p className="font-bold text-gray-900 text-lg">{selectedPartner.name}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSendOffer} className="space-y-4">
+                <div>
+                  <label className="label">Teklif Miktarı (TRY)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    className="input"
+                    placeholder="Örn: 50000"
+                    value={offerAmount}
+                    onChange={(e) => setOfferAmount(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Mesaj (Opsiyonel)</label>
+                  <textarea
+                    rows={4}
+                    className="input"
+                    placeholder="Teklifiniz hakkında detay ekleyin..."
+                    value={offerMessage}
+                    onChange={(e) => setOfferMessage(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Boş bırakılırsa varsayılan mesaj gönderilir.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setOfferModalOpen(false)}
+                    className="flex-1 btn btn-secondary"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 btn btn-primary"
+                  >
+                    Teklifi Gönder
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  const renderOffers = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="card">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+          <div className="p-2 bg-amber-50 rounded-lg">
+            <Briefcase className="w-5 h-5 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Gelen Teklifler</h2>
+          <span className="ml-auto px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm font-bold">
+            {offers.filter(o => !o.isRead).length} Okunmamış
+          </span>
+        </div>
+
+        {offersLoading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-600 mx-auto" />
+          </div>
+        ) : offers.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Briefcase className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-gray-500">Henüz teklif almadınız.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {offers.map((offer) => {
+              // Mesajdan ilan başlığını ve fiyatı çıkar
+              const titleMatch = offer.content.match(/\[İLAN TEKLİFİ\] (.+?)\n/);
+              const priceMatch = offer.content.match(/💰 Teklif Fiyatı: (.+?)\n/);
+              const messageContent = offer.content
+                .replace(/\[İLAN TEKLİFİ\].+?\n\n/, '')
+                .replace(/💰 Teklif Fiyatı:.+?\n\n/, '');
+
+              return (
+                <div
+                  key={offer.id}
+                  className={`p-5 rounded-xl border transition-all ${
+                    offer.isRead
+                      ? 'bg-white border-gray-200'
+                      : 'bg-amber-50 border-amber-300 shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center font-bold text-white text-lg shadow-lg">
+                        {offer.senderCompany?.name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">{offer.senderCompany?.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(offer.createdAt).toLocaleDateString('tr-TR', {
+                            day: 'numeric',
+                            month: 'long',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    {!offer.isRead && (
+                      <span className="px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full">
+                        Yeni
+                      </span>
+                    )}
+                  </div>
+
+                  {titleMatch && (
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">
+                      📋 {titleMatch[1]}
+                    </h3>
+                  )}
+
+                  {priceMatch && (
+                    <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg inline-block">
+                      <p className="text-emerald-700 font-bold text-lg">{priceMatch[1]}</p>
+                    </div>
+                  )}
+
+                  <p className="text-gray-700 whitespace-pre-wrap mb-4">{messageContent}</p>
+
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/chat?userId=${offer.senderId}`}
+                      className="btn btn-primary text-sm"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Yanıtla
+                    </Link>
+                    <Link
+                      to={`/companies/${offer.senderCompany?.slug}`}
+                      className="btn btn-outline text-sm"
+                    >
+                      Profili Görüntüle
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -638,8 +969,11 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <label className="label">Görseller</label>
-                    <div className="space-y-3">
+                    <label className="label">Medya (Görsel & Video)</label>
+
+                    {/* Ana Görsel */}
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-gray-700">Ana Görsel (Kapak)</span>
                       <div className="flex gap-2 items-center">
                         <div className="relative flex-1">
                           {productForm.mainImage ? (
@@ -674,7 +1008,7 @@ export default function DashboardPage() {
                           <input
                             type="file"
                             className="hidden"
-                            accept="image/*,video/*"
+                            accept="image/*"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
@@ -692,7 +1026,11 @@ export default function DashboardPage() {
                           />
                         </label>
                       </div>
+                    </div>
 
+                    {/* Ek Görseller */}
+                    <div className="space-y-3">
+                      <span className="text-sm font-medium text-gray-700">Ek Görseller</span>
                       {productForm.images.map((url, index) => (
                         <div key={index} className="flex gap-2 items-center">
                           <input
@@ -702,6 +1040,14 @@ export default function DashboardPage() {
                             value={url}
                             onChange={(e) => updateImageField(index, e.target.value)}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setProductForm({ ...productForm, mainImage: url })}
+                            className="btn btn-secondary px-3 text-blue-600 hover:bg-blue-50 text-xs"
+                            title="Ana Görsel Yap"
+                          >
+                            Kapak Yap
+                          </button>
                           <button
                             type="button"
                             onClick={() => removeImageField(index)}
@@ -716,7 +1062,37 @@ export default function DashboardPage() {
                         onClick={addImageField}
                         className="text-sm font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
                       >
-                        <Plus className="w-4 h-4" /> Daha fazla görsel alanı ekle
+                        <Plus className="w-4 h-4" /> Daha fazla görsel ekle
+                      </button>
+                    </div>
+
+                    {/* Videolar */}
+                    <div className="space-y-3 pt-4 border-t border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Videolar</span>
+                      {productForm.videos.map((url, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            className="input flex-1"
+                            placeholder={`Video URL #${index + 1}`}
+                            value={url}
+                            onChange={(e) => updateVideoField(index, e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeVideoField(index)}
+                            className="btn btn-secondary px-3 text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addVideoField}
+                        className="text-sm font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" /> Video ekle
                       </button>
                     </div>
                   </div>
@@ -989,6 +1365,8 @@ export default function DashboardPage() {
 
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'requests' && renderRequests()}
+        {activeTab === 'connections' && renderConnections()}
+        {activeTab === 'offers' && renderOffers()}
         {activeTab === 'products' && renderProducts()}
         {activeTab === 'analytics' && renderAnalytics()}
         {activeTab === 'profile' && renderProfile()}
