@@ -1,0 +1,618 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum CompanySize {
+  MICRO      // 1-10 çalışan
+  SMALL      // 11-50 çalışan
+  MEDIUM     // 51-250 çalışan
+  LARGE      // 250+ çalışan
+}
+
+enum IndustryType {
+  TEKSTIL
+  BASKI
+  PAZARLAMA
+  LOJISTIK
+  AMBALAJ
+  TASARIM
+  YAZILIM
+  URETIM
+  GIDA
+  INSAAT
+  MOBILYA
+  OTOMOTIV
+  ELEKTRIK_ELEKTRONIK
+  KIMYA
+  PLASTIK
+  METAL
+  KAGIT
+  DERI
+  CAM_SERAMIK
+  ENERJI
+  TARIM
+  DANISMANLIK
+  EGITIM
+  SAGLIK
+  TURIZM
+  DIGER
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company?
+  sentMessages      Message[] @relation("SentMessages")
+  receivedMessages  Message[] @relation("ReceivedMessages")
+  favorites     Favorite[]
+  notifications Notification[]
+  productReviews ProductReview[]
+  companyReviews Review[]
+
+  @@index([email])
+}
+
+model Company {
+  id                String        @id @default(uuid())
+  userId            String        @unique
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Temel Bilgiler
+  name              String
+  slug              String        @unique
+  description       String        @db.Text
+  logo              String?
+  coverImage        String?
+
+  // İletişim
+  phone             String
+  email             String
+  website           String?
+  address           String        @db.Text
+  city              String
+  district          String?
+
+  // Firma Bilgileri
+  industryType      IndustryType
+  companySize       CompanySize
+  foundedYear       Int?
+  taxNumber         String?
+
+  // Hizmetler ve Yetenekler
+  services          Service[]
+  capabilities      Capability[]
+
+  // İş Ortaklığı
+  seekingPartners   Boolean       @default(true)
+  partnerCriteria   String?       @db.Text
+
+  // Sertifikalar ve Başarılar
+  certifications    Certification[]
+  portfolio         PortfolioItem[]
+
+  // İstatistikler
+  viewCount         Int           @default(0)
+  connectionCount   Int           @default(0)
+
+  // Bağlantılar
+  connections       Connection[]  @relation("CompanyConnections")
+  connectedBy       Connection[]  @relation("ConnectedCompanies")
+
+  // Mesajlar
+  sentMessages      Message[]     @relation("CompanySentMessages")
+  receivedMessages  Message[]     @relation("CompanyReceivedMessages")
+
+  // Favoriler
+  favoritedBy       Favorite[]    @relation("FavoritedCompany")
+
+  // Yeni Modüller
+  products          Product[]
+  videos            Video[]
+  mediaGallery      MediaGallery[]
+  stats             CompanyStats?
+  reviews           Review[]
+  blogPosts         BlogPost[]
+  faqs              FAQ[]
+  needs             Need[]
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  isActive          Boolean       @default(true)
+  isPremium         Boolean       @default(false)
+  premiumUntil      DateTime?
+
+  @@index([slug])
+  @@index([industryType])
+  @@index([city])
+  @@index([isActive])
+}
+
+model Service {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String    @db.Text
+  category    String
+
+  createdAt   DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([category])
+}
+
+model Capability {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  level       Int       @default(5)  // 1-10 arası yetenek seviyesi
+  yearsExp    Int?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([name])
+}
+
+model Certification {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  issuer      String
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  imageUrl    String?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([companyId])
+}
+
+model PortfolioItem {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String    @db.Text
+  imageUrl    String?
+  projectDate DateTime?
+  tags        String[]
+
+  createdAt   DateTime  @default(now())
+
+  @@index([companyId])
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Connection {
+  id              String           @id @default(uuid())
+
+  requesterId     String
+  requester       Company          @relation("CompanyConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  receiverId      String
+  receiver        Company          @relation("ConnectedCompanies", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  status          ConnectionStatus @default(PENDING)
+  message         String?          @db.Text
+
+  createdAt       DateTime         @default(now())
+  respondedAt     DateTime?
+
+  @@unique([requesterId, receiverId])
+  @@index([requesterId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+model Message {
+  id              String    @id @default(uuid())
+
+  senderId        String
+  senderUser      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderCompany   Company   @relation("CompanySentMessages", fields: [senderCompanyId], references: [id], onDelete: Cascade)
+  senderCompanyId String
+
+  receiverId      String
+  receiverUser    User      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverCompany Company   @relation("CompanyReceivedMessages", fields: [receiverCompanyId], references: [id], onDelete: Cascade)
+  receiverCompanyId String
+
+  subject         String?
+  content         String    @db.Text
+  isRead          Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  readAt          DateTime?
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([isRead])
+}
+
+model Favorite {
+  id          String    @id @default(uuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyId   String
+  company     Company   @relation("FavoritedCompany", fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+}
+
+model SearchLog {
+  id            String    @id @default(uuid())
+  query         String
+  filters       Json?
+  resultCount   Int
+  userId        String?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([query])
+}
+
+// Ürün Modeli
+model Product {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name          String
+  slug          String
+  description   String    @db.Text
+  price         Float?
+  currency      String    @default("TRY")
+
+  category      String
+  subcategory   String?
+  tags          String[]
+
+  // Görseller
+  images        ProductImage[]
+  mainImage     String?
+
+  // Stok
+  stock         Int?
+  sku           String?
+  isAvailable   Boolean   @default(true)
+
+  // Özellikler
+  specifications Json?
+
+  // İstatistikler
+  viewCount     Int       @default(0)
+  favoriteCount Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  favorites     ProductFavorite[]
+  reviews       ProductReview[]
+
+  @@index([companyId])
+  @@index([slug])
+  @@index([category])
+  @@index([isAvailable])
+  @@unique([companyId, slug])
+}
+
+model ProductImage {
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url         String
+  alt         String?
+  order       Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+}
+
+model ProductFavorite {
+  id          String    @id @default(uuid())
+  userId      String
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model ProductReview {
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+
+  rating      Int       // 1-5
+  comment     String?   @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+}
+
+// Video Modeli
+model Video {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?   @db.Text
+
+  // Video URL (YouTube, Vimeo vb.)
+  videoUrl      String
+  thumbnailUrl  String?
+  platform      String    @default("youtube") // youtube, vimeo, custom
+
+  category      String?
+  tags          String[]
+
+  viewCount     Int       @default(0)
+  duration      Int?      // saniye cinsinden
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([platform])
+}
+
+// Galeri/Medya
+model MediaGallery {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?   @db.Text
+  imageUrl      String
+
+  type          String    @default("image") // image, video, document
+  category      String?
+  tags          String[]
+
+  order         Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([type])
+}
+
+// Şirket İstatistikleri
+model CompanyStats {
+  id              String    @id @default(uuid())
+  companyId       String    @unique
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  totalViews      Int       @default(0)
+  weeklyViews     Int       @default(0)
+  monthlyViews    Int       @default(0)
+
+  totalConnections Int      @default(0)
+  pendingRequests  Int      @default(0)
+
+  totalMessages    Int      @default(0)
+  unreadMessages   Int      @default(0)
+
+  totalProducts    Int      @default(0)
+  totalVideos      Int      @default(0)
+  totalGalleryItems Int     @default(0)
+
+  avgRating        Float?
+  totalReviews     Int      @default(0)
+
+  lastActivityAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// Yorumlar ve Değerlendirmeler
+model Review {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  reviewerUserId String
+  reviewer      User      @relation(fields: [reviewerUserId], references: [id], onDelete: Cascade)
+  reviewerName   String
+  reviewerCompany String?
+
+  rating        Int       // 1-5
+  title         String?
+  comment       String    @db.Text
+
+  // Değerlendirme kriterleri
+  communicationRating Int?
+  qualityRating      Int?
+  timelinessRating   Int?
+
+  isVerified    Boolean   @default(false)
+  isPublished   Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([rating])
+}
+
+// Bildirimler
+model Notification {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          String    // connection_request, message, review, etc.
+  title         String
+  message       String    @db.Text
+
+  link          String?
+  imageUrl      String?
+
+  isRead        Boolean   @default(false)
+  readAt        DateTime?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// Kategoriler
+model Category {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+  description   String?   @db.Text
+
+  parentId      String?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[] @relation("CategoryHierarchy")
+
+  icon          String?
+  order         Int       @default(0)
+
+  isActive      Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+}
+
+// Etiketler
+model Tag {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+
+  usageCount    Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([slug])
+}
+
+// Blog/Haberler
+model BlogPost {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title         String
+  slug          String
+  content       String    @db.Text
+  excerpt       String?   @db.Text
+
+  coverImage    String?
+  tags          String[]
+
+  viewCount     Int       @default(0)
+
+  isPublished   Boolean   @default(false)
+  publishedAt   DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([isPublished])
+}
+
+// SSS (Sık Sorulan Sorular)
+model FAQ {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  question      String
+  answer        String    @db.Text
+
+  order         Int       @default(0)
+  category      String?
+
+  viewCount     Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+}
+
+// İhtiyaçlar / İş Fırsatları (Needs Marketplace)
+model Need {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String    @db.Text
+  industryType  IndustryType
+  
+  // Detaylar
+  quantity      String?   // Örn: 5000 adet, 2 konteyner
+  budget        String?   // Örn: 100.000 TL, Teklif usulü
+  deadline      DateTime?
+  
+  status        String    @default("ACTIVE") // ACTIVE, CLOSED, COMPLETED
+  
+  viewCount     Int       @default(0)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([industryType])
+  @@index([status])
+}

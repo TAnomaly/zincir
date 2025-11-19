@@ -1,0 +1,27 @@
+{
+  "name": "zincir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "İş ortağı bulma ve eşleştirme platformu",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:studio": "npm run db:studio --workspace=backend",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:dev": "docker-compose up -d --build && docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --rmi all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Color Palette - Emerald & Slate */
+    --color-primary-50: #ecfdf5;
+    --color-primary-100: #d1fae5;
+    --color-primary-200: #a7f3d0;
+    --color-primary-300: #6ee7b7;
+    --color-primary-400: #34d399;
+    --color-primary-500: #10b981;
+    --color-primary-600: #059669;
+    --color-primary-700: #047857;
+    --color-primary-800: #065f46;
+    --color-primary-900: #064e3b;
+    --color-primary-950: #022c22;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 text-slate-900 font-sans antialiased;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 25%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight text-slate-900;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium transition-all duration-200 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] focus-visible:ring-emerald-600;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm active:scale-[0.98] focus-visible:ring-slate-500;
+  }
+
+  .btn-outline {
+    @apply border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 active:scale-[0.98] focus-visible:ring-emerald-600;
+  }
+
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm hover:border-slate-300;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/40 p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-2xl hover:shadow-slate-200/60 hover:-translate-y-1 hover:border-emerald-500/30;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset;
+  }
+
+  .badge-primary {
+    @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20;
+  }
+
+  .badge-secondary {
+    @apply bg-slate-50 text-slate-700 ring-slate-600/20;
+  }
+
+  .badge-accent {
+    @apply bg-blue-50 text-blue-700 ring-blue-600/20;
+  }
+
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-slate-900 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply mt-4 text-lg text-slate-600 max-w-2xl;
+  }
+}
