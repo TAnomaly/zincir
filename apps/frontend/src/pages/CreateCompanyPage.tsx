@@ -87,7 +87,7 @@ export default function CreateCompanyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-20">
+    <div className="min-h-screen bg-slate-800 py-20">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <div className="rounded-3xl bg-slate-900 text-white p-10 md:p-16 shadow-2xl relative overflow-hidden">

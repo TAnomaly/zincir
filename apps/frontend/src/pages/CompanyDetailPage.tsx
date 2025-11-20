@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Canvas } from '@react-three/fiber';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Company, INDUSTRY_LABELS, COMPANY_SIZE_LABELS, Product } from '../types';
@@ -9,6 +10,8 @@ import {
   CheckCircle2, ArrowRight, ShieldCheck, Users
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import OptimizedShaderBackground from '../components/OptimizedShaderBackground';
+import AnimatedCard from '../components/AnimatedCard';
 
 export default function CompanyDetailPage() {
   const { slug } = useParams();
@@ -414,22 +417,32 @@ export default function CompanyDetailPage() {
   }
 
   return (
-    <div className="pb-20 bg-slate-50 min-h-screen">
-      {/* Hero Section */}
-      <div className="relative h-80 w-full bg-slate-900 overflow-hidden">
-        {company.coverImage ? (
-          <img
-            src={company.coverImage}
-            alt={company.name}
-            className="w-full h-full object-cover opacity-60"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 opacity-90" />
+    <div className="pb-20 bg-slate-800 min-h-screen">
+      {/* Hero Section with Shader */}
+      <div className="relative h-80 w-full overflow-hidden">
+        {/* WebGL Shader Background */}
+        <div className="absolute inset-0 z-0">
+          <Canvas camera={{ position: [0, 0, 1] }}>
+            <OptimizedShaderBackground variant="accent" />
+          </Canvas>
+        </div>
+
+        {/* Optional company cover overlay */}
+        {company.coverImage && (
+          <div className="absolute inset-0 z-10">
+            <img
+              src={company.coverImage}
+              alt={company.name}
+              className="w-full h-full object-cover opacity-20"
+            />
+          </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent" />
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 z-20 bg-gradient-to-t from-slate-800 via-slate-800/50 to-transparent" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-30">
         <div className="flex flex-col md:flex-row items-end gap-8 mb-8">
           <div className="relative">
             {company.logo ? (

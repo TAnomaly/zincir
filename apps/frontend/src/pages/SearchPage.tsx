@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Canvas } from '@react-three/fiber';
 import { api } from '../lib/api';
 import { Company, INDUSTRY_LABELS } from '../types';
 import CompanyCard from '../components/CompanyCard';
 import { Search as SearchIcon, Loader2, Filter, ShieldCheck, Sparkles, MapPin, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
+import ShaderBackgroundVariants from '../components/ShaderBackgroundVariants';
+import ShaderButton from '../components/ShaderButton';
 
 const cities = [
   'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya',
@@ -86,10 +89,16 @@ export default function SearchPage() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header Section */}
-      <div className="bg-slate-900 text-white pt-24 pb-12 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-slate-900 to-slate-900" />
+    <div className="min-h-screen bg-slate-800 pb-20">
+      {/* Header Section with Shader */}
+      <div className="relative pt-24 pb-12 px-4 overflow-hidden">
+        {/* Shader Background */}
+        <div className="absolute inset-0 z-0">
+          <Canvas camera={{ position: [0, 0, 1] }}>
+            <ShaderBackgroundVariants variant="interactive" />
+          </Canvas>
+        </div>
+
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -100,19 +109,19 @@ export default function SearchPage() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold mb-4 backdrop-blur-sm">
                 <ShieldCheck className="w-4 h-4" /> Zincir Matchmaking
               </div>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-                İş Ortağını <span className="text-emerald-500">Bul</span>
+              <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">
+                İş Ortağını <span className="text-gradient">Bul</span>
               </h1>
-              <p className="text-lg text-slate-400 max-w-2xl">
+              <p className="text-lg text-slate-300 max-w-2xl">
                 Akıllı filtreler ve yapay zeka destekli önerilerle en doğru partneri keşfedin.
               </p>
             </div>
 
             <div className="flex gap-4 text-sm text-slate-400">
-              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 glass-panel px-4 py-2">
                 <Sparkles className="w-4 h-4 text-emerald-400" /> Akıllı Öneriler
               </div>
-              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 glass-panel px-4 py-2">
                 <Filter className="w-4 h-4 text-emerald-400" /> Detaylı Filtre
               </div>
             </div>
@@ -122,31 +131,31 @@ export default function SearchPage() {
 
       {/* Search & Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6 mb-10">
+        <div className="glass-panel dither-border p-6 mb-10 glow-emerald">
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-4">
               <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
                 <input
                   type="text"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-lg"
+                  className="input w-full pl-12 text-lg"
                   placeholder="Ne arıyorsunuz? (Örn: organik baskı, lojistik, ambalaj)"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <button type="submit" className="btn btn-primary px-8 py-4 text-lg shadow-lg shadow-emerald-600/20">
+              <ShaderButton type="submit" variant="primary" size="lg">
                 Ara
-              </button>
+              </ShaderButton>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sektör</label>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider ml-1">Sektör</label>
                 <div className="relative">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full pl-10 pr-8 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none transition-all"
+                    className="input w-full pl-10 pr-8 appearance-none"
                     value={filters.industryType}
                     onChange={(e) => setFilters({ ...filters, industryType: e.target.value })}
                   >
@@ -159,11 +168,11 @@ export default function SearchPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Şehir</label>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider ml-1">Şehir</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full pl-10 pr-8 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none transition-all"
+                    className="input w-full pl-10 pr-8 appearance-none"
                     value={filters.city}
                     onChange={(e) => setFilters({ ...filters, city: e.target.value })}
                   >
@@ -176,10 +185,10 @@ export default function SearchPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Yetkinlik</label>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider ml-1">Yetkinlik</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  className="input w-full"
                   placeholder={capabilityHints[capabilityHintIndex]}
                   value={filters.capability}
                   onChange={(e) => setFilters({ ...filters, capability: e.target.value })}
@@ -187,17 +196,17 @@ export default function SearchPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Partner Arayanlar</label>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider ml-1">Partner Arayanlar</label>
                 <button
                   type="button"
                   onClick={() => setFilters({ ...filters, seekingPartners: !filters.seekingPartners })}
                   className={`w-full h-[46px] px-4 rounded-xl flex items-center justify-between border transition-all ${filters.seekingPartners
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                     }`}
                 >
                   <span className="text-sm font-medium">Sadece Arayanlar</span>
-                  <div className={`w-10 h-6 rounded-full relative transition-colors ${filters.seekingPartners ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                  <div className={`w-10 h-6 rounded-full relative transition-colors ${filters.seekingPartners ? 'bg-emerald-500' : 'bg-slate-600'}`}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${filters.seekingPartners ? 'left-5' : 'left-1'}`} />
                   </div>
                 </button>
@@ -209,20 +218,20 @@ export default function SearchPage() {
         {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
           </div>
         ) : (
           <div className="space-y-12">
             {searched && companies.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                <SearchIcon className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-slate-900">Sonuç Bulunamadı</h3>
-                <p className="text-slate-500 mt-2">Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
+              <div className="text-center py-20 glass-panel">
+                <SearchIcon className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white">Sonuç Bulunamadı</h3>
+                <p className="text-slate-400 mt-2">Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
               </div>
             ) : searched && companies.length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">Arama Sonuçları ({companies.length})</h2>
+                  <h2 className="text-xl font-bold text-white">Arama Sonuçları ({companies.length})</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {companies.map((company, index) => (
@@ -243,10 +252,10 @@ export default function SearchPage() {
             {!searched && recommendations.length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <Sparkles className="w-5 h-5 text-emerald-600" />
+                  <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <Sparkles className="w-6 h-6 text-emerald-400" />
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900">Size Özel Öneriler</h2>
+                  <h2 className="text-2xl font-bold text-white">Size Özel Öneriler</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {recommendations.map((company, index) => (

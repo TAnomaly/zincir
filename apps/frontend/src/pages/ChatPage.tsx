@@ -64,7 +64,6 @@ export default function ChatPage() {
         try {
             const { data } = await api.get(`/messages/${userId}`);
             setMessages(data);
-            // Update unread count locally
             setConversations(prev => prev.map(c =>
                 c.otherUser.id === userId ? { ...c, unreadCount: 0 } : c
             ));
@@ -88,11 +87,8 @@ export default function ChatPage() {
 
             setMessages([...messages, data.data]);
             setNewMessage('');
-
-            // Update conversation list order
             fetchConversations();
         } catch (error) {
-            // console.error('Mesaj gönderilemedi', error);
             alert('Mesaj gönderilemedi');
         } finally {
             setSending(false);
@@ -101,26 +97,21 @@ export default function ChatPage() {
 
     useEffect(() => {
         fetchConversations();
-        // Poll for new conversations every 30 seconds
         const interval = setInterval(fetchConversations, 30000);
         return () => clearInterval(interval);
     }, []);
 
-    // Auto-start chat if userId or companyId is provided
     useEffect(() => {
         const userId = searchParams.get('userId');
         const companyId = searchParams.get('companyId');
 
         if (userId && !selectedUserId) {
-            // Direct user ID provided - use it immediately
             setSelectedUserId(userId);
         } else if (companyId && conversations.length > 0 && !selectedUserId) {
-            // Find user by companyId
             const conversation = conversations.find(c => c.otherUser.companyId === companyId);
             if (conversation) {
                 setSelectedUserId(conversation.otherUser.id);
             } else {
-                // If no conversation exists, fetch the company to get owner's userId
                 setAutoStartLoading(true);
                 api.get(`/companies/${companyId}`)
                     .then(({ data }) => {
@@ -137,7 +128,6 @@ export default function ChatPage() {
     useEffect(() => {
         if (selectedUserId) {
             fetchMessages(selectedUserId);
-            // Poll for new messages in active chat every 5 seconds
             const interval = setInterval(() => fetchMessages(selectedUserId), 5000);
             return () => clearInterval(interval);
         }
@@ -150,20 +140,20 @@ export default function ChatPage() {
     const selectedConversation = conversations.find(c => c.otherUser.id === selectedUserId);
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-20 pb-10">
+        <div className="min-h-screen bg-slate-800 pt-20 pb-10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[calc(100vh-8rem)]">
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden h-full flex">
+                <div className="glass-panel dither-border overflow-hidden h-full flex">
 
                     {/* Sidebar - Conversations List */}
-                    <div className={`w-full md:w-1/3 border-r border-slate-100 flex flex-col ${selectedUserId ? 'hidden md:flex' : 'flex'}`}>
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">Sohbetler</h2>
+                    <div className={`w-full md:w-1/3 border-r border-white/10 flex flex-col ${selectedUserId ? 'hidden md:flex' : 'flex'}`}>
+                        <div className="p-4 border-b border-white/10 bg-white/5">
+                            <h2 className="text-xl font-bold text-white mb-4">Sohbetler</h2>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
                                     placeholder="Sohbet ara..."
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="input w-full pl-10"
                                 />
                             </div>
                         </div>
@@ -171,43 +161,43 @@ export default function ChatPage() {
                         <div className="flex-1 overflow-y-auto">
                             {loadingConversations ? (
                                 <div className="flex justify-center p-8">
-                                    <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                                    <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
                                 </div>
                             ) : conversations.length === 0 ? (
-                                <div className="text-center p-8 text-slate-500">
+                                <div className="text-center p-8 text-slate-300">
                                     <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-20" />
                                     <p>Henüz hiç mesajınız yok.</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-50">
+                                <div className="divide-y divide-white/5">
                                     {conversations.map((conv) => (
                                         <button
                                             key={conv.otherUser.id}
                                             onClick={() => setSelectedUserId(conv.otherUser.id)}
-                                            className={`w-full p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors text-left ${selectedUserId === conv.otherUser.id ? 'bg-emerald-50 hover:bg-emerald-50' : ''}`}
+                                            className={`w-full p-4 flex items-center gap-4 hover:bg-white/5 transition-colors text-left ${selectedUserId === conv.otherUser.id ? 'bg-emerald-500/10 hover:bg-emerald-500/10' : ''}`}
                                         >
                                             <div className="relative">
                                                 {conv.otherUser.logo ? (
-                                                    <img src={conv.otherUser.logo} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
+                                                    <img src={conv.otherUser.logo} alt="" className="w-12 h-12 rounded-full object-cover border border-emerald-500/30" />
                                                 ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
+                                                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg border border-emerald-500/30">
                                                         {conv.otherUser.name.charAt(0)}
                                                     </div>
                                                 )}
                                                 {conv.unreadCount > 0 && (
-                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-white">
+                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-slate-800">
                                                         {conv.unreadCount}
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-baseline mb-1">
-                                                    <h3 className="font-semibold text-slate-900 truncate">{conv.otherUser.name}</h3>
+                                                    <h3 className="font-semibold text-white truncate">{conv.otherUser.name}</h3>
                                                     <span className="text-xs text-slate-400 whitespace-nowrap ml-2">
                                                         {new Date(conv.lastMessage.createdAt).toLocaleDateString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
-                                                <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
+                                                <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-200' : 'text-slate-400'}`}>
                                                     {conv.lastMessage.senderId === user?.id && 'Siz: '}
                                                     {conv.lastMessage.content}
                                                 </p>
@@ -220,39 +210,39 @@ export default function ChatPage() {
                     </div>
 
                     {/* Main Chat Area */}
-                    <div className={`flex-1 flex flex-col bg-slate-50/30 ${!selectedUserId ? 'hidden md:flex' : 'flex'}`}>
+                    <div className={`flex-1 flex flex-col bg-slate-900/20 ${!selectedUserId ? 'hidden md:flex' : 'flex'}`}>
                         {selectedUserId ? (
                             <>
                                 {/* Chat Header */}
-                                <div className="p-4 bg-white border-b border-slate-100 flex items-center gap-4 shadow-sm z-10">
+                                <div className="p-4 bg-white/5 border-b border-white/10 flex items-center gap-4 backdrop-blur-sm">
                                     <button
                                         onClick={() => setSelectedUserId(null)}
-                                        className="md:hidden p-2 -ml-2 hover:bg-slate-100 rounded-full"
+                                        className="md:hidden p-2 -ml-2 hover:bg-white/10 rounded-full"
                                     >
-                                        <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                        <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                                     </button>
 
                                     {selectedConversation?.otherUser.logo ? (
-                                        <img src={selectedConversation.otherUser.logo} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-200" />
+                                        <img src={selectedConversation.otherUser.logo} alt="" className="w-10 h-10 rounded-full object-cover border border-emerald-500/30" />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
+                                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold border border-emerald-500/30">
                                             {selectedConversation?.otherUser.name.charAt(0)}
                                         </div>
                                     )}
 
                                     <div>
-                                        <h3 className="font-bold text-slate-900">{selectedConversation?.otherUser.name}</h3>
-                                        <Link to={`/companies/${selectedConversation?.otherUser.slug}`} className="text-xs text-emerald-600 hover:underline">
+                                        <h3 className="font-bold text-white">{selectedConversation?.otherUser.name}</h3>
+                                        <Link to={`/companies/${selectedConversation?.otherUser.slug}`} className="text-xs text-emerald-400 hover:underline">
                                             Şirket Profilini Görüntüle
                                         </Link>
                                     </div>
                                 </div>
 
                                 {/* Messages List */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                     {loadingMessages ? (
                                         <div className="flex justify-center p-8">
-                                            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
                                         </div>
                                     ) : (
                                         messages.map((msg) => {
@@ -264,9 +254,9 @@ export default function ChatPage() {
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                                                 >
-                                                    <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl p-4 shadow-sm ${isMe
-                                                        ? 'bg-emerald-600 text-white rounded-tr-none'
-                                                        : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
+                                                    <div className={`max-w-[80%] md:max-w-[70%] rounded-2xl p-4 ${isMe
+                                                        ? 'bg-emerald-500 text-white rounded-tr-none shadow-lg shadow-emerald-500/20'
+                                                        : 'glass-panel text-white rounded-tl-none border border-white/10'
                                                         }`}>
                                                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                                                         <div className={`text-[10px] mt-1 text-right ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
@@ -286,14 +276,14 @@ export default function ChatPage() {
                                 </div>
 
                                 {/* Input Area */}
-                                <div className="p-4 bg-white border-t border-slate-100">
+                                <div className="p-4 bg-white/5 border-t border-white/10 backdrop-blur-sm">
                                     <form onSubmit={handleSendMessage} className="flex gap-2">
                                         <input
                                             type="text"
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             placeholder="Mesajınızı yazın..."
-                                            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="input flex-1"
                                         />
                                         <button
                                             type="submit"
@@ -306,12 +296,12 @@ export default function ChatPage() {
                                 </div>
                             </>
                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                    <MessageCircle className="w-10 h-10 text-slate-300" />
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-8">
+                                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10">
+                                    <MessageCircle className="w-10 h-10 text-slate-400" />
                                 </div>
-                                <h3 className="text-lg font-medium text-slate-600 mb-2">Sohbet Başlatın</h3>
-                                <p className="text-center max-w-xs">
+                                <h3 className="text-lg font-medium text-white mb-2">Sohbet Başlatın</h3>
+                                <p className="text-center max-w-xs text-slate-400">
                                     Sol taraftaki listeden bir kişi seçin veya şirket profillerinden yeni bir sohbet başlatın.
                                 </p>
                             </div>

@@ -157,17 +157,17 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-slate-50">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+      <div className="flex justify-center items-center min-h-screen bg-slate-800">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-800 flex flex-col items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900">Ürün bulunamadı</h2>
+          <h2 className="text-2xl font-bold text-white">Ürün bulunamadı</h2>
           <button onClick={() => navigate(-1)} className="btn btn-primary">
             Geri dön
           </button>
@@ -179,7 +179,7 @@ export default function ProductDetailPage() {
   const mediaItems = [product.mainImage, ...(product.images?.map((img) => img.url) || [])].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 pt-24">
+    <div className="min-h-screen bg-slate-800 pb-20 pt-24">
       {/* Quote Modal */}
       {showQuoteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

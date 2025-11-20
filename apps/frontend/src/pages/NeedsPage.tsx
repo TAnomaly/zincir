@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Canvas } from '@react-three/fiber';
 import { api } from '../lib/api';
 import { INDUSTRY_LABELS } from '../types';
 import {
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
+import OptimizedShaderBackground from '../components/OptimizedShaderBackground';
 
 interface Need {
     id: string;
@@ -265,10 +267,16 @@ export default function NeedsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20">
-            {/* Header Section */}
-            <div className="bg-slate-900 text-white pt-24 pb-16 px-4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-slate-900 to-slate-900" />
+        <div className="min-h-screen bg-slate-800 pb-20">
+            {/* Header Section with Shader */}
+            <div className="relative text-white pt-24 pb-16 px-4 overflow-hidden">
+                {/* WebGL Shader Background */}
+                <div className="absolute inset-0 z-0">
+                    <Canvas camera={{ position: [0, 0, 1] }}>
+                        <OptimizedShaderBackground variant="accent" />
+                    </Canvas>
+                </div>
+
                 <div className="max-w-7xl mx-auto relative z-10 text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}

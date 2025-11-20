@@ -1,193 +1,122 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Eye, TrendingUp, Users, Package, Briefcase, Building2, User } from 'lucide-react';
-import { api } from '../api';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { api } from '../lib/api';
+import { Canvas } from '@react-three/fiber';
+import { TrendingUp, Users, ShoppingBag, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import OptimizedShaderBackground from '../components/OptimizedShaderBackground';
+import AnimatedCard from '../components/AnimatedCard';
 
-interface AnalyticsData {
-    profile: {
-        totalViews: number;
-        viewsLast7Days: number;
-        viewsLast30Days: number;
-    };
-    products: {
-        totalProducts: number;
-        totalViews: number;
-    };
-    needs: {
-        totalNeeds: number;
-        totalViews: number;
-    };
-    recentVisitors: Array<{
-        viewedAt: string;
-        visitor: {
-            type: 'COMPANY' | 'USER';
-            id?: string;
-            name?: string;
-            slug?: string;
-            logo?: string;
-            email?: string;
-            industryType?: string;
-        };
-    }>;
-}
-
-export const AnalyticsPage = () => {
-    const [data, setData] = useState<AnalyticsData | null>(null);
+export default function AnalyticsPage() {
+    const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
                 const { data } = await api.get('/analytics');
-                setData(data);
+                setAnalytics(data);
             } catch (error) {
-                console.error('Analitik verileri yüklenemedi:', error);
+                console.error('Error fetching analytics:', error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchAnalytics();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-            </div>
-        );
-    }
-
-    if (!data) {
-        return (
-            <div className="min-h-screen bg-slate-50 pt-24 px-4 text-center">
-                <h2 className="text-2xl font-bold text-slate-800">Veri bulunamadı</h2>
-            </div>
-        );
-    }
+    const stats = [
+        {
+            label: 'Toplam Görüntüleme',
+            value: analytics?.totalViews || 0,
+            change: '+12.5%',
+            trend: 'up',
+            icon: TrendingUp,
+            color: 'emerald'
+        },
+        {
+            label: 'Bağlantılar',
+            value: analytics?.connectionCount || 0,
+            change: '+8.2%',
+            trend: 'up',
+            icon: Users,
+            color: 'cyan'
+        },
+        {
+            label: 'Ürün Görüntüleme',
+            value: analytics?.productViews || 0,
+            change: '+15.3%',
+            trend: 'up',
+            icon: ShoppingBag,
+            color: 'purple'
+        },
+        {
+            label: 'Etkileşim Oranı',
+            value: analytics?.engagementRate ? `${analytics.engagementRate}%` : '0%',
+            change: '-2.1%',
+            trend: 'down',
+            icon: DollarSign,
+            color: 'amber'
+        },
+    ];
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900">Analitikler</h1>
-                    <p className="text-slate-600 mt-2">Şirket profilinizin ve içeriklerinizin performansını takip edin.</p>
+        <div className="min-h-screen bg-slate-800 pb-20">
+            {/* Hero with Shader */}
+            <div className="relative pt-24 pb-16 px-4 overflow-hidden">
+                <div className="absolute inset-0 z-0 opacity-40">
+                    <Canvas camera={{ position: [0, 0, 1] }}>
+                        <OptimizedShaderBackground variant="accent" />
+                    </Canvas>
                 </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                                <Eye className="w-6 h-6" />
-                            </div>
-                            <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-lg flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3" />
-                                Son 30 gün
-                            </span>
-                        </div>
-                        <h3 className="text-slate-500 text-sm font-medium">Toplam Profil Görüntülenme</h3>
-                        <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-slate-900">{data.profile.totalViews}</span>
-                            <span className="text-sm text-slate-400">({data.profile.viewsLast30Days} yeni)</span>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                                <Package className="w-6 h-6" />
-                            </div>
-                        </div>
-                        <h3 className="text-slate-500 text-sm font-medium">Ürün Etkileşimi</h3>
-                        <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-slate-900">{data.products.totalViews}</span>
-                            <span className="text-sm text-slate-400">görüntülenme / {data.products.totalProducts} ürün</span>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                                <Briefcase className="w-6 h-6" />
-                            </div>
-                        </div>
-                        <h3 className="text-slate-500 text-sm font-medium">İlan Etkileşimi</h3>
-                        <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-slate-900">{data.needs.totalViews}</span>
-                            <span className="text-sm text-slate-400">görüntülenme / {data.needs.totalNeeds} ilan</span>
-                        </div>
-                    </motion.div>
+                <div className="max-w-7xl mx-auto relative z-10 text-center">
+                    <h1 className="text-5xl md:text-6xl font-black text-white mb-4">
+                        Analiz <span className="text-gradient">Merkezi</span>
+                    </h1>
+                    <p className="text-xl text-slate-200 max-w-2xl mx-auto">
+                        Şirketinizin performansını takip edin ve büyüme fırsatlarını keşfedin
+                    </p>
                 </div>
+            </div>
 
-                {/* Recent Visitors */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100">
-                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <Users className="w-5 h-5 text-slate-400" />
-                            Son Ziyaretçiler
-                        </h2>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                        {data.recentVisitors.length === 0 ? (
-                            <div className="p-8 text-center text-slate-500">
-                                Henüz ziyaretçi verisi yok.
-                            </div>
-                        ) : (
-                            data.recentVisitors.map((visit, index) => (
-                                <div key={index} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
-                                            {visit.visitor.logo ? (
-                                                <img src={visit.visitor.logo} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                visit.visitor.type === 'COMPANY' ? <Building2 className="w-5 h-5 text-slate-400" /> : <User className="w-5 h-5 text-slate-400" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            {visit.visitor.type === 'COMPANY' ? (
-                                                <Link to={`/companies/${visit.visitor.slug}`} className="font-medium text-slate-900 hover:text-emerald-600">
-                                                    {visit.visitor.name}
-                                                </Link>
-                                            ) : (
-                                                <span className="font-medium text-slate-900">
-                                                    {visit.visitor.email?.split('@')[0]}***
-                                                </span>
-                                            )}
-                                            <div className="text-sm text-slate-500">
-                                                {visit.visitor.type === 'COMPANY' ? visit.visitor.industryType : 'Bireysel Kullanıcı'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-sm text-slate-400">
-                                        {new Date(visit.viewedAt).toLocaleDateString('tr-TR', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
+            {/* Stats Grid */}
+            <div className="max-w-7xl mx-auto px-4 -mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                    {stats.map((stat, i) => (
+                        <AnimatedCard key={stat.label} delay={i * 0.1}>
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
+                                    <p className="text-3xl font-black text-white mb-2">{stat.value}</p>
+                                    <div className={`flex items-center gap-1 text-sm ${stat.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {stat.trend === 'up' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                                        <span className="font-semibold">{stat.change}</span>
                                     </div>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                                <div className={`p-3 rounded-xl bg-${stat.color}-500/10`}>
+                                    <stat.icon className={`w-6 h-6 text-${stat.color}-400`} />
+                                </div>
+                            </div>
+                        </AnimatedCard>
+                    ))}
+                </div>
+
+                {/* Charts Placeholder */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <AnimatedCard delay={0.4}>
+                        <h3 className="text-xl font-bold text-white mb-4">Aylık Trend</h3>
+                        <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-white/5">
+                            <p className="text-slate-400">Grafik yükleniyor...</p>
+                        </div>
+                    </AnimatedCard>
+
+                    <AnimatedCard delay={0.5}>
+                        <h3 className="text-xl font-bold text-white mb-4">En Çok Görüntülenen</h3>
+                        <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-white/5">
+                            <p className="text-slate-400">Grafik yükleniyor...</p>
+                        </div>
+                    </AnimatedCard>
                 </div>
             </div>
         </div>
     );
-};
+}

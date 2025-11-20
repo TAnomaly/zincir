@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { api } from '../lib/api';
 import { Company, INDUSTRY_LABELS } from '../types';
 import CompanyCard from '../components/CompanyCard';
 import { Loader2, Building2, Filter, Search, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ShaderBackgroundVariants from '../components/ShaderBackgroundVariants';
+import ShaderButton from '../components/ShaderButton';
 
 const cities = [
   'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya',
@@ -55,10 +58,15 @@ export default function CompaniesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header Section */}
-      <div className="bg-slate-900 text-white pt-24 pb-12 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-slate-900 to-slate-900" />
+    <div className="min-h-screen bg-slate-800 pb-20">
+      {/* Header Section with Shader */}
+      <div className="relative pt-24 pb-12 px-4 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Canvas camera={{ position: [0, 0, 1] }}>
+            <ShaderBackgroundVariants variant="accent" />
+          </Canvas>
+        </div>
+
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -66,18 +74,18 @@ export default function CompaniesPage() {
             className="flex flex-col md:flex-row justify-between items-end gap-6"
           >
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-bold mb-4 backdrop-blur-sm shadow-sm shadow-emerald-900/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-4 backdrop-blur-sm">
                 <Building2 className="w-4 h-4" /> Zincir Atlası
               </div>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-white drop-shadow-sm">
-                İş Ortaklarını <span className="text-emerald-400">Keşfet</span>
+              <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">
+                İş Ortaklarını <span className="text-gradient">Keşfet</span>
               </h1>
-              <p className="text-lg text-slate-400 max-w-2xl">
+              <p className="text-lg text-slate-300 max-w-2xl">
                 Sektörün önde gelen firmalarıyla bağlantı kurun, tedarik ağınızı genişletin.
               </p>
             </div>
 
-            <div className="flex gap-6 text-sm text-slate-400 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <div className="flex gap-6 text-sm text-slate-400 glass-panel p-4">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-white">500+</span>
                 <span>Doğrulanmış Şirket</span>
@@ -94,13 +102,13 @@ export default function CompaniesPage() {
 
       {/* Filters Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6 mb-10">
+        <div className="glass-panel dither-border p-6 mb-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-4 lg:col-span-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
               <input
                 type="text"
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                className="input w-full pl-12"
                 placeholder="Şirket adı ara..."
                 value={filters.search}
                 onChange={(e) => {
@@ -113,7 +121,7 @@ export default function CompaniesPage() {
             <div className="relative">
               <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <select
-                className="w-full pl-10 pr-8 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none transition-all"
+                className="input w-full pl-10 pr-8 appearance-none"
                 value={filters.industryType}
                 onChange={(e) => {
                   setFilters({ ...filters, industryType: e.target.value });
@@ -130,7 +138,7 @@ export default function CompaniesPage() {
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <select
-                className="w-full pl-10 pr-8 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none transition-all"
+                className="input w-full pl-10 pr-8 appearance-none"
                 value={filters.city}
                 onChange={(e) => {
                   setFilters({ ...filters, city: e.target.value });
@@ -150,12 +158,12 @@ export default function CompaniesPage() {
                 setPagination({ ...pagination, page: 1 });
               }}
               className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${filters.seekingPartners
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                 }`}
             >
               <span className="text-sm font-medium">Partner Arayanlar</span>
-              <div className={`w-10 h-6 rounded-full relative transition-colors ${filters.seekingPartners ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+              <div className={`w-10 h-6 rounded-full relative transition-colors ${filters.seekingPartners ? 'bg-emerald-500' : 'bg-slate-600'}`}>
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${filters.seekingPartners ? 'left-5' : 'left-1'}`} />
               </div>
             </button>
@@ -165,13 +173,13 @@ export default function CompaniesPage() {
         {/* Results */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
           </div>
         ) : companies.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-            <Building2 className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-slate-900">Sonuç Bulunamadı</h3>
-            <p className="text-slate-500 mt-2">Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
+          <div className="text-center py-20 glass-panel">
+            <Building2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white">Sonuç Bulunamadı</h3>
+            <p className="text-slate-400 mt-2">Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
           </div>
         ) : (
           <>
@@ -190,23 +198,25 @@ export default function CompaniesPage() {
 
             {pagination.pages > 1 && (
               <div className="flex justify-center gap-2">
-                <button
+                <ShaderButton
+                  variant="secondary"
+                  size="md"
                   onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
                   disabled={pagination.page === 1}
-                  className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
                 >
                   Önceki
-                </button>
-                <span className="flex items-center px-4 font-medium text-slate-900 bg-white rounded-lg border border-slate-200">
+                </ShaderButton>
+                <span className="flex items-center px-6 font-medium text-white glass-panel">
                   {pagination.page} / {pagination.pages}
                 </span>
-                <button
+                <ShaderButton
+                  variant="secondary"
+                  size="md"
                   onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
                   disabled={pagination.page === pagination.pages}
-                  className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
                 >
                   Sonraki
-                </button>
+                </ShaderButton>
               </div>
             )}
           </>
