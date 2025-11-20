@@ -123,6 +123,11 @@ authRouter.post(
         throw new AppError('Email veya şifre hatalı', 401);
       }
 
+      // Check if user is banned
+      if (user.isBanned) {
+        throw new AppError(`Hesabınız yasaklanmış. Sebep: ${user.bannedReason || 'Belirtilmemiş'}`, 403);
+      }
+
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {

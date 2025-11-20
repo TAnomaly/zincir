@@ -54,6 +54,13 @@ model User {
   email         String    @unique
   password      String
   role          UserRole  @default(USER)
+
+  // Admin/Moderation
+  isBanned      Boolean   @default(false)
+  bannedReason  String?
+  bannedAt      DateTime?
+  bannedBy      String?   // Admin user ID who banned
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -64,8 +71,11 @@ model User {
   notifications Notification[]
   productReviews ProductReview[]
   companyReviews Review[]
+  profileViews  ProfileView[]
 
   @@index([email])
+  @@index([role])
+  @@index([isBanned])
 }
 
 model Company {
@@ -130,6 +140,8 @@ model Company {
   blogPosts         BlogPost[]
   faqs              FAQ[]
   needs             Need[]
+  stories           Story[]
+  profileViews      ProfileView[]
 
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -137,10 +149,16 @@ model Company {
   isPremium         Boolean       @default(false)
   premiumUntil      DateTime?
 
+  // Admin/Moderation
+  isBanned          Boolean       @default(false)
+  bannedReason      String?
+  bannedAt          DateTime?
+
   @@index([slug])
   @@index([industryType])
   @@index([city])
   @@index([isActive])
+  @@index([isBanned])
 }
 
 model Service {
@@ -631,4 +649,37 @@ model Need {
   @@index([companyId])
   @@index([industryType])
   @@index([status])
+}
+
+model Story {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  mediaUrl    String
+  mediaType   String   @default("image") // image, video
+  thumbnailUrl String? // For videos
+  caption     String?
+  
+  viewCount   Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([companyId])
+  @@index([expiresAt])
+}
+
+model ProfileView {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  viewerId  String?  // User ID of the viewer (if logged in)
+  viewer    User?    @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+  
+  viewedAt  DateTime @default(now())
+  
+  @@index([companyId])
+  @@index([viewedAt])
 }

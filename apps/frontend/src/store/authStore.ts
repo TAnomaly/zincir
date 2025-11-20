@@ -6,7 +6,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -24,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.token);
       set({ user: data.user, token: data.token, isLoading: false });
+      return data.user;
     } catch (error) {
       set({ isLoading: false });
       throw error;

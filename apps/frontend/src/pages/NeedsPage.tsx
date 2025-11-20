@@ -33,6 +33,9 @@ export default function NeedsPage() {
     const { user } = useAuthStore();
     const [needs, setNeeds] = useState<Need[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Filters & Search State
+    const [activeTab, setActiveTab] = useState<'all' | 'my' | 'connections'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState({
         industryType: '',
@@ -78,15 +81,34 @@ export default function NeedsPage() {
 
     useEffect(() => {
         fetchNeeds();
-    }, [filters]);
+    }, [filters, activeTab]);
 
     const fetchNeeds = async () => {
         setLoading(true);
         try {
-            const params: any = { ...filters };
+            const params: any = { ...filters, limit: 12 };
+
             if (searchQuery.trim()) {
                 params.search = searchQuery;
             }
+
+            if (activeTab === 'my') {
+                if (user?.company?.id) {
+                    params.companyId = user.company.id;
+                    // When viewing my needs, I might want to see all statuses
+                    if (params.status === 'ACTIVE') {
+                        delete params.status; // Or set to ALL if backend supports
+                    }
+                } else {
+                    // If no company, show empty or redirect
+                    setNeeds([]);
+                    setLoading(false);
+                    return;
+                }
+            } else if (activeTab === 'connections') {
+                params.filter = 'connections';
+            }
+
             const { data } = await api.get('/needs', { params });
             setNeeds(data.needs || []);
         } catch (error) {
@@ -264,6 +286,39 @@ export default function NeedsPage() {
                         Sektördeki güncel satın alma taleplerini, tedarik ihtiyaçlarını ve iş ortaklığı fırsatlarını keşfedin.
                     </motion.p>
 
+                    {/* Tabs */}
+                    <div className="flex justify-center mb-8">
+                        <div className="bg-white/10 backdrop-blur-md p-1 rounded-xl inline-flex">
+                            <button
+                                onClick={() => setActiveTab('all')}
+                                className={`px-6 py-2 rounded-lg font-medium transition-all ${activeTab === 'all'
+                                    ? 'bg-emerald-500 text-white shadow-lg'
+                                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                Tüm İlanlar
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('connections')}
+                                className={`px-6 py-2 rounded-lg font-medium transition-all ${activeTab === 'connections'
+                                    ? 'bg-emerald-500 text-white shadow-lg'
+                                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                Bağlantılarım
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('my')}
+                                className={`px-6 py-2 rounded-lg font-medium transition-all ${activeTab === 'my'
+                                    ? 'bg-emerald-500 text-white shadow-lg'
+                                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                İlanlarım
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Search & Filter Bar */}
                     <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/10 flex flex-col md:flex-row gap-2">
                         <div className="flex-1 relative">
@@ -289,6 +344,20 @@ export default function NeedsPage() {
                                 ))}
                             </select>
                         </div>
+                        {activeTab === 'my' && (
+                            <div className="md:w-40">
+                                <select
+                                    className="w-full h-full bg-white/90 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                >
+                                    <option value="ACTIVE">Aktif</option>
+                                    <option value="CLOSED">Kapalı</option>
+                                    <option value="COMPLETED">Tamamlandı</option>
+                                    <option value="ALL">Hepsi</option>
+                                </select>
+                            </div>
+                        )}
                         <button
                             onClick={handleSearch}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-colors"

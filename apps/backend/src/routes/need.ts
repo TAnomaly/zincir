@@ -1,23 +1,58 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuthenticate, AuthRequest } from '../middleware/auth.js';
 
 export const needRouter = express.Router();
 
 // Get all needs (with filters)
-needRouter.get('/', async (req, res, next) => {
+needRouter.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const { industryType, status, limit = '20', page = '1' } = req.query;
+        const { industryType, status, companyId, limit = '12', page = '1', search, filter } = req.query;
 
-        const where: any = {
-            status: status ? (status as string) : 'ACTIVE',
-        };
+        const where: any = {};
 
-        if (industryType) {
+        // Status filter
+        if (status && status !== 'ALL') {
+            where.status = status as string;
+        } else if (!status) {
+            if (!companyId && filter !== 'connections') {
+                where.status = 'ACTIVE';
+            }
+        }
+
+        if (industryType && industryType !== 'ALL') {
             where.industryType = industryType;
         }
 
-        const { search } = req.query;
+        if (companyId) {
+            where.companyId = companyId as string;
+        }
+
+        if (filter === 'connections' && req.userId) {
+            const user = await prisma.user.findUnique({
+                where: { id: req.userId },
+                include: { company: true }
+            });
+
+            if (user?.company) {
+                const userCompanyId = user.company.id;
+                const connections = await prisma.connection.findMany({
+                    where: {
+                        OR: [
+                            { requesterId: userCompanyId, status: 'ACCEPTED' },
+                            { receiverId: userCompanyId, status: 'ACCEPTED' }
+                        ]
+                    }
+                });
+
+                const connectedCompanyIds = connections.map(c =>
+                    c.requesterId === userCompanyId ? c.receiverId : c.requesterId
+                );
+
+                where.companyId = { in: connectedCompanyIds };
+            }
+        }
+
         if (search) {
             where.OR = [
                 { title: { contains: search as string, mode: 'insensitive' } },

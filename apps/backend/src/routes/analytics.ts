@@ -1,240 +1,125 @@
-import express from 'express';
+import express, { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 export const analyticsRouter = express.Router();
 
-// Şirket dashboard istatistikleri
-analyticsRouter.get('/dashboard', authenticate, async (req: AuthRequest, res, next) => {
+analyticsRouter.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const company = await prisma.company.findUnique({
-      where: { userId: req.userId! },
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: { company: true }
     });
 
-    if (!company) {
-      throw new AppError('Şirket profili bulunamadı', 404);
+    if (!user?.company) {
+      throw new AppError('Şirket profiliniz bulunamadı', 404);
     }
 
-    // İstatistikleri getir veya oluştur
-    const stats = await prisma.companyStats.upsert({
-      where: { companyId: company.id },
-      create: { companyId: company.id },
-      update: {},
-    });
+    const companyId = user.company.id;
 
-    // Ek veriler
+    // Date ranges
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Parallel queries for efficiency
     const [
-      pendingConnections,
-      unreadMessages,
-      recentProducts,
-      recentViews,
-      topSearches
-    ] = await Promise.all([
-      prisma.connection.count({
-        where: {
-          receiverId: company.id,
-          status: 'PENDING',
-        },
-      }),
-      prisma.message.count({
-        where: {
-          receiverId: req.userId!,
-          isRead: false,
-        },
-      }),
-      prisma.product.findMany({
-        where: { companyId: company.id },
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          viewCount: true,
-          favoriteCount: true,
-        },
-      }),
-      prisma.searchLog.count({
-        where: {
-          query: {
-            contains: company.name,
-            mode: 'insensitive',
-          },
-        },
-      }),
-      prisma.searchLog.groupBy({
-        by: ['query'],
-        where: {
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Son 30 gün
-          },
-        },
-        _count: true,
-        orderBy: {
-          _count: {
-            query: 'desc',
-          },
-        },
-        take: 10,
-      }),
-    ]);
-
-    res.json({
-      stats,
-      pendingConnections,
-      unreadMessages,
-      recentProducts,
-      recentViews,
-      topSearches,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Popüler aramalar (public)
-analyticsRouter.get('/popular-searches', async (req, res, next) => {
-  try {
-    const { days = '30', limit = '20' } = req.query;
-
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
-
-    const searches = await prisma.searchLog.groupBy({
-      by: ['query'],
-      where: {
-        createdAt: { gte: daysAgo },
-      },
-      _count: {
-        query: true,
-      },
-      _sum: {
-        resultCount: true,
-      },
-      orderBy: {
-        _count: {
-          query: 'desc',
-        },
-      },
-      take: parseInt(limit as string),
-    });
-
-    res.json(searches);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Trend sektörler
-analyticsRouter.get('/trending-industries', async (req, res, next) => {
-  try {
-    const { days = '7' } = req.query;
-
-    const daysAgo = new Date();
-    daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
-
-    const trending = await prisma.company.groupBy({
-      by: ['industryType'],
-      where: {
-        createdAt: { gte: daysAgo },
-        isActive: true,
-      },
-      _count: true,
-      orderBy: {
-        _count: {
-          industryType: 'desc',
-        },
-      },
-    });
-
-    res.json(trending);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Platform geneli istatistikler (public)
-analyticsRouter.get('/platform-stats', async (req, res, next) => {
-  try {
-    const [
-      totalCompanies,
-      totalProducts,
-      totalConnections,
-      activeCompanies,
       totalViews,
+      viewsLast7Days,
+      viewsLast30Days,
+      recentVisitors,
+      productStats,
+      needStats
     ] = await Promise.all([
-      prisma.company.count({ where: { isActive: true } }),
-      prisma.product.count({ where: { isAvailable: true } }),
-      prisma.connection.count({ where: { status: 'ACCEPTED' } }),
-      prisma.company.count({
+      // Total Profile Views
+      prisma.profileView.count({ where: { companyId } }),
+
+      // Last 7 Days
+      prisma.profileView.count({
         where: {
-          isActive: true,
-          updatedAt: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          },
-        },
+          companyId,
+          viewedAt: { gte: sevenDaysAgo }
+        }
       }),
-      prisma.companyStats.aggregate({
-        _sum: { totalViews: true },
+
+      // Last 30 Days
+      prisma.profileView.count({
+        where: {
+          companyId,
+          viewedAt: { gte: thirtyDaysAgo }
+        }
       }),
+
+      // Recent Visitors (last 10 unique visitors if possible, or just last 20 records)
+      prisma.profileView.findMany({
+        where: { companyId, viewerId: { not: null } },
+        orderBy: { viewedAt: 'desc' },
+        take: 20,
+        include: {
+          viewer: {
+            select: {
+              id: true,
+              email: true,
+              company: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  logo: true,
+                  city: true,
+                  industryType: true
+                }
+              }
+            }
+          }
+        }
+      }),
+
+      // Product Stats
+      prisma.product.aggregate({
+        where: { companyId },
+        _sum: { viewCount: true },
+        _count: { id: true }
+      }),
+
+      // Need Stats
+      prisma.need.aggregate({
+        where: { companyId },
+        _sum: { viewCount: true },
+        _count: { id: true }
+      })
     ]);
 
-    res.json({
-      totalCompanies,
-      totalProducts,
-      totalConnections,
-      activeCompanies,
-      totalViews: totalViews._sum.totalViews || 0,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Şirket performans raporu
-analyticsRouter.get('/company-report/:companyId', async (req, res, next) => {
-  try {
-    const company = await prisma.company.findUnique({
-      where: { id: req.params.companyId },
-      include: {
-        stats: true,
-        _count: {
-          select: {
-            products: true,
-            videos: true,
-            blogPosts: true,
-            reviews: true,
-            connections: true,
-          },
-        },
-      },
-    });
-
-    if (!company) {
-      throw new AppError('Şirket bulunamadı', 404);
-    }
-
-    // Son 7 günün görüntülenmeleri
-    const recentViews = company.stats?.weeklyViews || 0;
-
-    // Ortalama puan
-    const avgRating = company.stats?.avgRating || 0;
+    // Process recent visitors to remove duplicates if needed, or just send raw list
+    // For MVP, raw list is fine, frontend can deduplicate or show "User X viewed 5 times"
 
     res.json({
-      company: {
-        id: company.id,
-        name: company.name,
-        logo: company.logo,
+      profile: {
+        totalViews,
+        viewsLast7Days,
+        viewsLast30Days,
       },
-      counts: company._count,
-      stats: company.stats,
-      performance: {
-        recentViews,
-        avgRating,
-        engagementRate: company.stats ?
-          (company.stats.totalConnections / (company.stats.totalViews || 1)) * 100 : 0,
+      products: {
+        totalProducts: productStats._count.id,
+        totalViews: productStats._sum.viewCount || 0,
       },
+      needs: {
+        totalNeeds: needStats._count.id,
+        totalViews: needStats._sum.viewCount || 0,
+      },
+      recentVisitors: recentVisitors.map(v => ({
+        viewedAt: v.viewedAt,
+        visitor: v.viewer?.company ? {
+          type: 'COMPANY',
+          ...v.viewer.company
+        } : {
+          type: 'USER',
+          email: v.viewer?.email
+        }
+      }))
     });
+
   } catch (error) {
     next(error);
   }

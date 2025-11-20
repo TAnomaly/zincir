@@ -24,6 +24,7 @@ import { SocketProvider } from './context/SocketContext';
 
 // Layout
 import Layout from './components/Layout';
+import AdminRoute from './components/AdminRoute';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -83,9 +84,9 @@ function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <AdminPage />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
         </Routes>

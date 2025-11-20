@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, Building2, Package, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
-import axios from 'axios';
+import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 
 interface AdminStats {
@@ -34,12 +34,8 @@ export default function AdminPage() {
     const fetchData = async () => {
         try {
             const [statsRes, companiesRes] = await Promise.all([
-                axios.get('http://localhost:3001/api/admin/stats', {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                axios.get('http://localhost:3001/api/admin/companies', {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
+                api.get('/admin/stats'),
+                api.get('/admin/companies')
             ]);
 
             setStats(statsRes.data);
@@ -53,10 +49,9 @@ export default function AdminPage() {
 
     const updateCompanyStatus = async (id: string, isActive: boolean) => {
         try {
-            await axios.put(
-                `http://localhost:3001/api/admin/companies/${id}/status`,
-                { isActive },
-                { headers: { Authorization: `Bearer ${token}` } }
+            await api.put(
+                `/admin/companies/${id}/status`,
+                { isActive }
             );
             fetchData(); // Listeyi yenile
         } catch (error) {

@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { prisma } from '../lib/prisma.js';
-import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { authenticate, AuthRequest, optionalAuthenticate } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 export const companyRouter = express.Router();
@@ -154,8 +154,89 @@ companyRouter.get('/', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+// Önerilen şirketleri getir (AI Matching MVP)
+companyRouter.get('/recommendations', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: { company: true }
+    });
+
+    if (!user?.company) {
+      // Şirketi yoksa en popüler şirketleri döndür
+      const popular = await prisma.company.findMany({
+        where: { isActive: true },
+        orderBy: { viewCount: 'desc' },
+        take: 5,
+        include: {
+          _count: { select: { connections: true } }
+        }
+      });
+      return res.json(popular);
+    }
+
+    const myCompany = user.company;
+
+    // Mevcut bağlantıları bul
+    const connections = await prisma.connection.findMany({
+      where: {
+        OR: [
+          { requesterId: myCompany.id },
+          { receiverId: myCompany.id }
+        ]
+      }
+    });
+
+    const connectedIds = connections.map(c =>
+      c.requesterId === myCompany.id ? c.receiverId : c.requesterId
+    );
+    connectedIds.push(myCompany.id); // Kendini de hariç tut
+
+    // Basit AI Mantığı:
+    // 1. Aynı sektördeki şirketler
+    // 2. Henüz bağlantı kurulmamış
+    // 3. Aktif şirketler
+    // 4. Puanlama (ViewCount + Connection Count)
+
+    const recommendations = await prisma.company.findMany({
+      where: {
+        isActive: true,
+        id: { notIn: connectedIds },
+        industryType: myCompany.industryType // Sektör eşleşmesi
+      },
+      take: 10,
+      include: {
+        _count: { select: { connections: true } }
+      },
+      orderBy: {
+        viewCount: 'desc'
+      }
+    });
+
+    // Eğer aynı sektörden yeterince yoksa, genel popülerleri ekle
+    if (recommendations.length < 5) {
+      const others = await prisma.company.findMany({
+        where: {
+          isActive: true,
+          id: { notIn: [...connectedIds, ...recommendations.map(c => c.id)] }
+        },
+        take: 5 - recommendations.length,
+        orderBy: { viewCount: 'desc' },
+        include: {
+          _count: { select: { connections: true } }
+        }
+      });
+      recommendations.push(...others);
+    }
+
+    res.json(recommendations);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Şirket detayı
-companyRouter.get('/:slug', async (req: Request, res: Response, next: NextFunction) => {
+companyRouter.get('/:slug', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const company = await prisma.company.findUnique({
       where: { slug: req.params.slug },
@@ -177,11 +258,22 @@ companyRouter.get('/:slug', async (req: Request, res: Response, next: NextFuncti
       throw new AppError('Şirket bulunamadı', 404);
     }
 
-    // Görüntüleme sayısını artır
-    await prisma.company.update({
-      where: { id: company.id },
-      data: { viewCount: { increment: 1 } },
-    });
+    // Görüntüleme sayısını artır ve kaydet
+    // Kendi şirketini görüntülüyorsa sayma
+    if (req.userId !== company.userId) {
+      await prisma.$transaction([
+        prisma.company.update({
+          where: { id: company.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+        prisma.profileView.create({
+          data: {
+            companyId: company.id,
+            viewerId: req.userId || null,
+          }
+        })
+      ]);
+    }
 
     res.json(company);
   } catch (error) {

@@ -1,50 +1,191 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, PerspectiveCamera, Environment, Stars } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import {
   ShieldCheck, Globe, Zap,
   Building2, Search, TrendingUp
 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Float, PerspectiveCamera, Environment, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-function FloatingParticles() {
-  const mesh = useRef<THREE.Points>(null!);
+// Türkiye'deki önemli şehirler ve koordinatları
+const TURKEY_CITIES = [
+  { name: 'İstanbul', lat: 41.0082, lon: 28.9784, companies: 156 },
+  { name: 'Ankara', lat: 39.9334, lon: 32.8597, companies: 89 },
+  { name: 'İzmir', lat: 38.4237, lon: 27.1428, companies: 67 },
+  { name: 'Bursa', lat: 40.1826, lon: 29.0665, companies: 45 },
+  { name: 'Antalya', lat: 36.8969, lon: 30.7133, companies: 34 },
+  { name: 'Adana', lat: 37.0000, lon: 35.3213, companies: 28 },
+  { name: 'Konya', lat: 37.8746, lon: 32.4932, companies: 24 },
+  { name: 'Gaziantep', lat: 37.0662, lon: 37.3833, companies: 22 },
+  { name: 'Kayseri', lat: 38.7205, lon: 35.4826, companies: 18 },
+  { name: 'Mersin', lat: 36.8121, lon: 34.6415, companies: 16 },
+];
+
+// Lat/Lon'u 3D küre koordinatlarına çevir
+function latLonToVector3(lat: number, lon: number, radius: number) {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+
+  const x = -(radius * Math.sin(phi) * Math.cos(theta));
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
+
+  return new THREE.Vector3(x, y, z);
+}
+
+// Şirket işareti (küçük bina gibi)
+function CompanyMarker({ position, city, isHovered, onHover }: any) {
+  const meshRef = useRef<THREE.Group>(null!);
 
   useFrame((state) => {
-    if (mesh.current) {
-      mesh.current.rotation.y = state.clock.getElapsedTime() * 0.05;
-      mesh.current.rotation.x = state.clock.getElapsedTime() * 0.02;
+    if (meshRef.current && isHovered) {
+      meshRef.current.scale.lerp(new THREE.Vector3(1.5, 1.5, 1.5), 0.1);
+    } else if (meshRef.current) {
+      meshRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
     }
   });
 
   return (
-    <points ref={mesh}>
-      <sphereGeometry args={[10, 64, 64]} />
-      <pointsMaterial
-        size={0.05}
-        color="#10b981"
-        transparent
-        opacity={0.6}
-        sizeAttenuation
-      />
-    </points>
+    <group ref={meshRef} position={position}>
+      {/* Ana bina gövdesi */}
+      <mesh
+        onPointerEnter={() => onHover(city)}
+        onPointerLeave={() => onHover(null)}
+      >
+        <boxGeometry args={[0.08, 0.15, 0.08]} />
+        <meshStandardMaterial
+          color="#10b981"
+          emissive="#10b981"
+          emissiveIntensity={isHovered ? 0.8 : 0.3}
+          metalness={0.8}
+          roughness={0.2}
+        />
+      </mesh>
+
+      {/* Bina çatısı */}
+      <mesh position={[0, 0.09, 0]}>
+        <coneGeometry args={[0.06, 0.08, 4]} />
+        <meshStandardMaterial
+          color="#059669"
+          emissive="#059669"
+          emissiveIntensity={isHovered ? 0.6 : 0.2}
+        />
+      </mesh>
+
+      {/* Parlayan halka efekti */}
+      {isHovered && (
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
+          <ringGeometry args={[0.12, 0.15, 32]} />
+          <meshBasicMaterial color="#10b981" transparent opacity={0.6} />
+        </mesh>
+      )}
+
+      {/* Hover bilgi etiketi */}
+      {isHovered && (
+        <Html distanceFactor={10}>
+          <div className="bg-slate-900/95 border border-emerald-500/50 rounded-lg px-3 py-2 text-white shadow-xl backdrop-blur-sm">
+            <div className="font-bold text-sm">{city.name}</div>
+            <div className="text-emerald-400 text-xs">{city.companies} Aktif Şirket</div>
+          </div>
+        </Html>
+      )}
+    </group>
   );
 }
 
+// 3D Dünya küresi
+function WorldGlobe() {
+  const globeRef = useRef<THREE.Mesh>(null!);
+  const [hoveredCity, setHoveredCity] = useState<any>(null);
+
+  useFrame((state) => {
+    if (globeRef.current) {
+      globeRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+    }
+  });
+
+  return (
+    <group>
+      {/* Ana küre */}
+      <mesh ref={globeRef}>
+        <sphereGeometry args={[5, 64, 64]} />
+        <meshStandardMaterial
+          color="#0f172a"
+          wireframe={false}
+          transparent
+          opacity={0.6}
+          emissive="#1e293b"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+
+      {/* Wireframe overlay */}
+      <mesh>
+        <sphereGeometry args={[5.02, 32, 32]} />
+        <meshBasicMaterial
+          color="#10b981"
+          wireframe
+          transparent
+          opacity={0.15}
+        />
+      </mesh>
+
+      {/* Şehir işaretleri */}
+      {TURKEY_CITIES.map((city) => {
+        const position = latLonToVector3(city.lat, city.lon, 5.15);
+        return (
+          <CompanyMarker
+            key={city.name}
+            position={position}
+            city={city}
+            isHovered={hoveredCity?.name === city.name}
+            onHover={setHoveredCity}
+          />
+        );
+      })}
+
+      {/* Parıldayan partiküller */}
+      <Float speed={2} rotationIntensity={0.3} floatIntensity={0.5}>
+        <points>
+          <sphereGeometry args={[5.5, 64, 64]} />
+          <pointsMaterial
+            size={0.02}
+            color="#10b981"
+            transparent
+            opacity={0.4}
+            sizeAttenuation
+          />
+        </points>
+      </Float>
+    </group>
+  );
+}
+
+// Ana 3D sahne
 function HeroScene() {
   return (
     <div className="absolute inset-0 z-0">
       <Canvas>
-        <PerspectiveCamera makeDefault position={[0, 0, 20]} />
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} />
-        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-          <FloatingParticles />
-        </Float>
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <Environment preset="city" />
+        <PerspectiveCamera makeDefault position={[0, 0, 15]} />
+        <ambientLight intensity={0.3} />
+        <pointLight position={[10, 10, 10]} intensity={1} color="#10b981" />
+        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#3b82f6" />
+        <spotLight position={[0, 15, 0]} angle={0.3} intensity={0.5} color="#10b981" />
+
+        <WorldGlobe />
+
+        <Stars
+          radius={100}
+          depth={50}
+          count={5000}
+          factor={4}
+          saturation={0}
+          fade
+          speed={1}
+        />
+        <Environment preset="night" />
       </Canvas>
     </div>
   );
@@ -72,7 +213,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <HeroScene />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">

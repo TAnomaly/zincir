@@ -22,6 +22,9 @@ import {
   Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import StoriesBar from '../components/StoriesBar';
+import CreateStoryModal from '../components/CreateStoryModal';
+import StoryViewer from '../components/StoryViewer';
 
 const TABS = [
   { id: 'overview', label: 'Genel Bakış' },
@@ -69,14 +72,22 @@ export default function DashboardPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [stats, setStats] = useState<any>(null);
+  const [recommendations, setRecommendations] = useState<Company[]>([]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Company | null>(null);
   const [offerAmount, setOfferAmount] = useState('');
   const [offerMessage, setOfferMessage] = useState('');
+
   const { user } = useAuthStore();
+
+  // Stories State
+  const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
+  const [viewingStories, setViewingStories] = useState<any[] | null>(null);
+  const [viewingCompanyId, setViewingCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConnections();
+    fetchRecommendations();
   }, []);
 
   useEffect(() => {
@@ -125,10 +136,19 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const { data } = await api.get('/analytics/dashboard');
+      const { data } = await api.get('/analytics');
       setStats(data);
     } catch (error) {
       // Hata sessizce yönetiliyor
+    }
+  };
+
+  const fetchRecommendations = async () => {
+    try {
+      const { data } = await api.get('/companies/recommendations');
+      setRecommendations(data);
+    } catch (error) {
+      // console.error('Öneriler alınamadı', error);
     }
   };
 
@@ -411,6 +431,53 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* AI Recommendations Section */}
+      <div className="card border-emerald-100 bg-emerald-50/50">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="p-2 bg-emerald-100 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Sizin İçin Önerilenler</h3>
+            <p className="text-sm text-gray-500">Yapay zeka destekli iş ortağı önerileri</p>
+          </div>
+        </div>
+
+        {recommendations.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendations.map((company) => (
+              <div key={company.id} className="bg-white p-4 rounded-xl border border-emerald-100 hover:shadow-md transition-all group">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    {company.logo ? (
+                      <img src={company.logo} alt={company.name} className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <span className="text-xl font-bold text-gray-400">{company.name.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 truncate">{company.name}</h4>
+                    <p className="text-xs text-gray-500 truncate">{company.industryType} • {company.city}</p>
+                    <div className="mt-3 flex gap-2">
+                      <Link
+                        to={`/companies/${company.slug}`}
+                        className="flex-1 py-1.5 text-xs font-medium text-center text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                      >
+                        Profili İncele
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">
+            Şu an için size özel bir önerimiz bulunmuyor. Profilinizi güncelleyerek daha iyi eşleşmeler yakalayabilirsiniz.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -775,11 +842,10 @@ export default function DashboardPage() {
               return (
                 <div
                   key={offer.id}
-                  className={`p-5 rounded-xl border transition-all ${
-                    offer.isRead
-                      ? 'bg-white border-gray-200'
-                      : 'bg-amber-50 border-amber-300 shadow-md'
-                  }`}
+                  className={`p-5 rounded-xl border transition-all ${offer.isRead
+                    ? 'bg-white border-gray-200'
+                    : 'bg-amber-50 border-amber-300 shadow-md'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -861,6 +927,7 @@ export default function DashboardPage() {
 
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Ürün Yönetimi</h2>
@@ -1348,6 +1415,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Stories Section */}
+        <StoriesBar
+          onCreateStory={() => setShowCreateStoryModal(true)}
+          onViewStory={(companyId, stories) => {
+            setViewingCompanyId(companyId);
+            setViewingStories(stories);
+          }}
+        />
+
         <div className="bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm inline-flex flex-wrap gap-1 mb-10">
           {TABS.map((tab) => (
             <button
@@ -1371,6 +1447,28 @@ export default function DashboardPage() {
         {activeTab === 'analytics' && renderAnalytics()}
         {activeTab === 'profile' && renderProfile()}
       </div>
+      {/* Stories Modals */}
+      {showCreateStoryModal && (
+        <CreateStoryModal
+          onClose={() => setShowCreateStoryModal(false)}
+          onSuccess={() => {
+            // Refresh stories logic could be added here, 
+            // but StoriesBar fetches on mount so maybe force refresh?
+            // For now just close, user can refresh page or we can add a refresh trigger
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {viewingStories && (
+        <StoryViewer
+          stories={viewingStories}
+          onClose={() => {
+            setViewingStories(null);
+            setViewingCompanyId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

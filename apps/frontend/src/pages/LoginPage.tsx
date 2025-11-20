@@ -15,8 +15,14 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const user = await login(email, password);
+
+      // Admin ise admin paneline yönlendir
+      if (user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
     }

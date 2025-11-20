@@ -16,6 +16,7 @@ import { notificationRouter } from './routes/notification.js';
 import { faqRouter } from './routes/faq.js';
 import { needRouter } from './routes/need.js';
 import { uploadRouter } from './routes/upload.js';
+import storiesRouter from './routes/stories.js';
 import path from 'path';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -40,11 +41,15 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       connectSrc: ["'self'", "http://localhost:3001", "ws://localhost:3001", "wss://localhost:3001", "http://localhost:3000", "ws://localhost:3000"],
       imgSrc: ["'self'", "data:", "blob:", "http://localhost:3001"],
+      mediaSrc: ["'self'", "http://localhost:3001", "blob:"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
     },
   },
 }));
+
+import { startCronJobs } from './cron.js';
+startCronJobs();
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -61,25 +66,27 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.urlencoded({ extended: true }));
 
-import { adminRouter } from './routes/admin.js';
+import adminRouter from './routes/admin.js';
 
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/companies', companyRouter);
-app.use('/api/connections', connectionRouter);
-app.use('/api/messages', messageRouter);
-app.use('/api/search', searchRouter);
 app.use('/api/products', productRouter);
-app.use('/api/video', videoRouter);
-app.use('/api/gallery', galleryRouter);
-app.use('/api/reviews', reviewRouter);
-app.use('/api/blog', blogRouter);
-app.use('/api/analytics', analyticsRouter);
+app.use('/api/messages', messageRouter);
 app.use('/api/notifications', notificationRouter);
-app.use('/api/faq', faqRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/reviews', reviewRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/blog', blogRouter);
+app.use('/api/videos', videoRouter);
+app.use('/api/stories', storiesRouter);
+app.use('/api/needs', needRouter);
+app.use('/api/analytics', analyticsRouter);
 app.use('/api/needs', needRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/stories', storiesRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
